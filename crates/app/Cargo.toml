@@ -6,4 +6,5 @@ license.workspace = true
 
 [dependencies]
 gpui.workspace = true
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
 islandvolt-platform-windows = { path = "../platform-windows" }

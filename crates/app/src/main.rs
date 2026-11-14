@@ -1,29 +1,14 @@
-use gpui::{
-    App, Application, Bounds, Context, IntoElement, Render, Window, WindowBounds, WindowOptions,
-    div, point, prelude::*, px, rgb, size,
-};
+mod island;
 
-struct Island;
-
-impl Render for Island {
-    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
-        div()
-            .size_full()
-            .flex()
-            .items_center()
-            .justify_center()
-            .bg(rgb(0x101116))
-            .text_color(rgb(0xffffff))
-            .child("IslandVolt")
-    }
-}
+use gpui::{App, AppContext, Application, Bounds, WindowBounds, WindowOptions, point, px, size};
+use island::Island;
 
 fn main() {
     Application::new().run(|cx: &mut App| {
-        let size = size(px(360.0), px(56.0));
+        let size = size(px(320.0), px(54.0));
         let mut bounds = Bounds::centered(None, size, cx);
         if let Some(display) = cx.primary_display() {
-            bounds.origin = point(bounds.origin.x, display.bounds().origin.y + px(12.0));
+            bounds.origin = point(bounds.origin.x, display.bounds().origin.y + px(10.0));
         }
         if let Err(error) = cx.open_window(
             WindowOptions {
@@ -37,7 +22,7 @@ fn main() {
                 if let Err(error) = islandvolt_platform_windows::configure_island(window) {
                     eprintln!("Не удалось настроить окно острова: {error}");
                 }
-                cx.new(|_| Island)
+                cx.new(Island::new)
             },
         ) {
             eprintln!("Не удалось открыть окно IslandVolt: {error}");
