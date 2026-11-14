@@ -1,5 +1,7 @@
 //! Windows window integration for the island prototype.
 
+pub mod media;
+
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use windows::Win32::{
     Foundation::{HWND, RECT},

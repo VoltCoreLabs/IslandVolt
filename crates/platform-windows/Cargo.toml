@@ -6,4 +6,5 @@ license.workspace = true
 
 [dependencies]
 raw-window-handle = "0.6"
-windows = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging"] }
+async-channel = "2"
+windows = { version = "0.61", features = ["Foundation", "Media_Control", "Win32_Foundation", "Win32_Graphics_Gdi", "Win32_System_Com", "Win32_UI_WindowsAndMessaging"] }
