@@ -2319,6 +2319,15 @@ name = "islandvolt-app"
 version = "0.1.0"
 dependencies = [
  "gpui",
+ "islandvolt-platform-windows",
+]
+
+[[package]]
+name = "islandvolt-platform-windows"
+version = "0.1.0"
+dependencies = [
+ "raw-window-handle",
+ "windows",
 ]
 
 [[package]]
