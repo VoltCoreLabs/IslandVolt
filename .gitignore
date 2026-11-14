@@ -1,0 +1,24 @@
+# Rust build output (source files will be added after design approval)
+/target/
+**/*.rs.bk
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Editor and operating system files
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Local runtime and temporary output
+*.log
+/tmp/
+/captures/
+/recordings/
