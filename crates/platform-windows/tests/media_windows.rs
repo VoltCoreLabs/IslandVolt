@@ -1,7 +1,7 @@
 use std::{sync::mpsc, time::Duration};
 
 #[test]
-fn monitor_emits_initial_state_and_can_stop() {
+fn monitor_emits_initial_state() {
     let (monitor, updates) = islandvolt_platform_windows::media::watch();
     let (sender, receiver) = mpsc::channel();
     std::thread::spawn(move || {
