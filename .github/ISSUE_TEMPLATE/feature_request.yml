@@ -1,0 +1,30 @@
+name: Новая возможность
+description: Предложить функцию или улучшение IslandVolt
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Сценарий и проблема
+      description: Что пользователь хочет сделать и что мешает сейчас?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Предлагаемое поведение
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Критерии готовности
+      description: Какие наблюдаемые результаты подтвердят готовность?
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Ограничения и альтернативы
+      description: Windows 10/11, приватность, доступность, ресурсы или сервисы.

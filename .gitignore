@@ -22,3 +22,7 @@ Desktop.ini
 /tmp/
 /captures/
 /recordings/
+
+# Repository tooling
+__pycache__/
+*.pyc

@@ -5,9 +5,15 @@
 чтобы каркас был доступен после clone. При появлении содержимого placeholder удаляется.
 
 ```text
-inslandio/
+islandvolt/
+├─ .github/
+│  ├─ ISSUE_TEMPLATE/
+│  ├─ workflows/repository-checks.yml
+│  └─ pull_request_template.md
 ├─ AGENTS.md
 ├─ README.md
+├─ CONTRIBUTING.md
+├─ LICENSE
 ├─ docs/
 │  ├─ product.md
 │  ├─ architecture.md
@@ -17,7 +23,8 @@ inslandio/
 │  ├─ data-and-permissions.md
 │  ├─ pets.md
 │  ├─ roadmap.md
-│  └─ decisions.md
+│  ├─ decisions.md
+│  └─ repository.md
 ├─ crates/
 │  ├─ app/
 │  ├─ core/
@@ -73,7 +80,7 @@ inslandio/
 ├─ tests/
 │  ├─ integration/
 │  └─ fixtures/
-└─ tools/
+└─ tools/check_repository.py
 ```
 
 ## Преобразование в Cargo workspace

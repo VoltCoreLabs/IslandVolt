@@ -1,13 +1,16 @@
-# Inslandio
+# IslandVolt
+
+[![Repository checks](https://github.com/VoltCoreLabs/IslandVolt/actions/workflows/repository-checks.yml/badge.svg)](https://github.com/VoltCoreLabs/IslandVolt/actions/workflows/repository-checks.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 Персональный настольный остров на **Rust + GPUI** для **Windows 10 и Windows 11**.
 Компактная панель объединяет музыку, быстрые инструменты, заметки, ИИ и анимированных животных.
 
-Репозиторий: [VoltCoreLabs/InsalndVolt](https://github.com/VoltCoreLabs/InsalndVolt).
+Репозиторий: [VoltCoreLabs/IslandVolt](https://github.com/VoltCoreLabs/IslandVolt).
 
 **Статус: проектирование.** Здесь подготовлены правила, архитектура, каталоги и дорожная карта.
 Исходников приложения и Cargo workspace пока нет; проект ещё нельзя собирать или запускать.
-Название Inslandio пока рабочее, взято из имени папки проекта.
+Название проекта — **IslandVolt**; префикс будущих Rust-пакетов — `islandvolt-`.
 
 ## Первый рабочий релиз
 
@@ -34,6 +37,8 @@
 | [Питомцы](docs/pets.md) | Пакеты животных и анимации |
 | [Дорожная карта](docs/roadmap.md) | Последовательность и критерии этапов |
 | [Решения](docs/decisions.md) | Принятые решения и открытые вопросы |
+| [Участие в разработке](CONTRIBUTING.md) | Ветки, задачи, PR и проверки |
+| [Настройка GitHub](docs/repository.md) | Описание, темы, метки, CI и ограничения |
 
 ## Принцип расширения
 
@@ -43,3 +48,8 @@ Windows API, хранение и провайдеры подключаются �
 
 Все созданные текстовые файлы укладываются в 300 строк.
 Правило для будущих генерируемых lock-файлов вынесено на уточнение в список решений.
+
+## Лицензия
+
+Проект распространяется под [MIT](LICENSE). Зависимости, модели и ассеты могут иметь
+собственные лицензии; их условия проверяются перед добавлением.
