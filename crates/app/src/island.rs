@@ -8,7 +8,8 @@ pub struct Island {
     show_date: bool,
     _clock: Task<()>,
     track: Option<Track>,
-    _media_monitor: MediaMonitor,
+    media_error: Option<String>,
+    media_monitor: MediaMonitor,
     _media_task: Task<()>,
 }
 
@@ -29,13 +30,12 @@ impl Island {
         let (monitor, updates) = media::watch();
         let media_task = cx.spawn(async move |this, cx| {
             while let Ok(result) = updates.recv().await {
-                let track = result.unwrap_or_else(|error| {
-                    eprintln!("Медиасессия недоступна: {error}");
-                    None
-                });
                 if this
                     .update(cx, |island, cx| {
-                        island.track = track;
+                        match result {
+                            Ok(track) => island.track = track,
+                            Err(error) => island.media_error = Some(error),
+                        }
                         cx.notify();
                     })
                     .is_err()
@@ -48,7 +48,8 @@ impl Island {
             show_date: false,
             _clock: clock,
             track: None,
-            _media_monitor: monitor,
+            media_error: None,
+            media_monitor: monitor,
             _media_task: media_task,
         }
     }
@@ -57,7 +58,9 @@ impl Island {
 impl Render for Island {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let now = Local::now();
-        let secondary = if self.show_date {
+        let secondary = if let Some(error) = &self.media_error {
+            error.clone()
+        } else if self.show_date {
             now.format("%d.%m.%Y").to_string()
         } else if let Some(track) = &self.track {
             if track.title.trim().is_empty() {
@@ -81,6 +84,7 @@ impl Render for Island {
             .cursor_pointer()
             .on_click(cx.listener(|this, _, _, cx| {
                 this.show_date = !this.show_date;
+                this.media_error = None;
                 cx.notify();
             }))
             .child(
@@ -99,6 +103,40 @@ impl Render for Island {
                             .child(secondary),
                     ),
             )
+            .when_some(self.track.as_ref(), |row, track| {
+                let session_id = track.session_id;
+                let enabled = track.can_toggle;
+                let icon = if track.playing { "Ⅱ" } else { "▶" };
+                row.child(
+                    div()
+                        .id("media-toggle")
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .size(px(30.0))
+                        .rounded_full()
+                        .text_sm()
+                        .text_color(if enabled {
+                            rgb(0xf5f6fa)
+                        } else {
+                            rgb(0x646570)
+                        })
+                        .when(enabled, |button| {
+                            button
+                                .cursor_pointer()
+                                .on_click(cx.listener(move |this, _, _, cx| {
+                                    cx.stop_propagation();
+                                    this.media_error = this
+                                        .media_monitor
+                                        .toggle(session_id)
+                                        .err()
+                                        .map(str::to_string);
+                                    cx.notify();
+                                }))
+                        })
+                        .child(icon),
+                )
+            })
             .child(
                 div()
                     .text_sm()

@@ -15,10 +15,27 @@ pub struct Track {
     pub title: String,
     pub artist: String,
     pub playing: bool,
+    pub can_toggle: bool,
+    pub session_id: u64,
+}
+
+#[derive(Clone, Copy)]
+enum Message {
+    Refresh,
+    Toggle(u64),
 }
 
 pub struct MediaMonitor {
-    signals: async_channel::Sender<()>,
+    signals: async_channel::Sender<Message>,
+}
+
+impl MediaMonitor {
+    /// Queue an action for the session currently displayed by the UI.
+    pub fn toggle(&self, session_id: u64) -> Result<(), &'static str> {
+        self.signals
+            .try_send(Message::Toggle(session_id))
+            .map_err(|_| "Не удалось отправить команду плееру")
+    }
 }
 
 impl Drop for MediaMonitor {
@@ -31,7 +48,7 @@ pub fn watch() -> (
     MediaMonitor,
     async_channel::Receiver<Result<Option<Track>, String>>,
 ) {
-    let (signals, events) = async_channel::bounded(1);
+    let (signals, events) = async_channel::bounded(8);
     let (updates, receiver) = async_channel::bounded(8);
     let notify = signals.clone();
     std::thread::spawn(move || {
@@ -52,32 +69,34 @@ pub fn watch() -> (
 }
 
 fn run(
-    events: &async_channel::Receiver<()>,
-    notify: &async_channel::Sender<()>,
+    events: &async_channel::Receiver<Message>,
+    notify: &async_channel::Sender<Message>,
     updates: &async_channel::Sender<Result<Option<Track>, String>>,
 ) -> windows::core::Result<()> {
     let manager = Manager::RequestAsync()?.get()?;
     let manager_signal = notify.clone();
     let manager_token = manager.CurrentSessionChanged(&TypedEventHandler::new(move |_, _| {
-        let _ = manager_signal.try_send(());
+        let _ = manager_signal.try_send(Message::Refresh);
         Ok(())
     }))?;
     let mut subscribed: Option<(Session, i64, i64)> = None;
-    let _ = notify.try_send(());
-    while events.recv_blocking().is_ok() {
+    let mut session_id = 0_u64;
+    let _ = notify.try_send(Message::Refresh);
+    while let Ok(message) = events.recv_blocking() {
         let current = manager.GetCurrentSession().ok();
         if subscribed.as_ref().map(|entry| &entry.0) != current.as_ref() {
+            session_id = session_id.wrapping_add(1);
             unsubscribe(subscribed.take());
             if let Some(session) = current.as_ref() {
                 let properties_signal = notify.clone();
                 let properties =
                     session.MediaPropertiesChanged(&TypedEventHandler::new(move |_, _| {
-                        let _ = properties_signal.try_send(());
+                        let _ = properties_signal.try_send(Message::Refresh);
                         Ok(())
                     }));
                 let playback_signal = notify.clone();
                 let playback = session.PlaybackInfoChanged(&TypedEventHandler::new(move |_, _| {
-                    let _ = playback_signal.try_send(());
+                    let _ = playback_signal.try_send(Message::Refresh);
                     Ok(())
                 }));
                 match (properties, playback) {
@@ -94,7 +113,17 @@ fn run(
                 }
             }
         }
-        let track = current.and_then(|session| read_track(&session).ok());
+        if let Message::Toggle(expected) = message {
+            let outcome = current
+                .as_ref()
+                .filter(|_| expected == session_id)
+                .ok_or_else(|| "Медиасессия изменилась".to_string())
+                .and_then(toggle_playback);
+            if let Err(error) = outcome {
+                let _ = updates.try_send(Err(error));
+            }
+        }
+        let track = current.and_then(|session| read_track(&session, session_id).ok());
         if updates.try_send(Ok(track)).is_err() && updates.is_closed() {
             break;
         }
@@ -111,11 +140,44 @@ fn unsubscribe(subscription: Option<(Session, i64, i64)>) {
     }
 }
 
-fn read_track(session: &Session) -> windows::core::Result<Track> {
+fn read_track(session: &Session, session_id: u64) -> windows::core::Result<Track> {
     let properties = session.TryGetMediaPropertiesAsync()?.get()?;
+    let playback = session.GetPlaybackInfo()?;
+    let playing = playback.PlaybackStatus()? == PlaybackStatus::Playing;
+    let controls = playback.Controls()?;
     Ok(Track {
         title: properties.Title()?.to_string_lossy(),
         artist: properties.Artist()?.to_string_lossy(),
-        playing: session.GetPlaybackInfo()?.PlaybackStatus()? == PlaybackStatus::Playing,
+        playing,
+        can_toggle: if playing {
+            controls.IsPauseEnabled()?
+        } else {
+            controls.IsPlayEnabled()?
+        },
+        session_id,
     })
+}
+
+fn toggle_playback(session: &Session) -> Result<(), String> {
+    let info = session
+        .GetPlaybackInfo()
+        .map_err(|error| error.to_string())?;
+    let controls = info.Controls().map_err(|error| error.to_string())?;
+    let playing =
+        info.PlaybackStatus().map_err(|error| error.to_string())? == PlaybackStatus::Playing;
+    let accepted = if playing && controls.IsPauseEnabled().unwrap_or(false) {
+        session
+            .TryPauseAsync()
+            .and_then(|operation| operation.get())
+    } else if !playing && controls.IsPlayEnabled().unwrap_or(false) {
+        session.TryPlayAsync().and_then(|operation| operation.get())
+    } else {
+        return Err("Плеер не поддерживает эту команду".into());
+    }
+    .map_err(|error| error.to_string())?;
+    if accepted {
+        Ok(())
+    } else {
+        Err("Плеер отклонил команду".into())
+    }
 }
