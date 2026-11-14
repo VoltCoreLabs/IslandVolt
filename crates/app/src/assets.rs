@@ -24,3 +24,25 @@ impl AssetSource for Icons {
         Ok(vec![])
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn media_icons_are_embedded_and_available() {
+        for path in [
+            "icons/play.svg",
+            "icons/pause.svg",
+            "icons/previous.svg",
+            "icons/next.svg",
+        ] {
+            let icon = Icons
+                .load(path)
+                .expect("icon lookup")
+                .expect("embedded icon");
+            assert!(icon.starts_with(b"<svg"), "invalid SVG: {path}");
+        }
+        assert!(Icons.load("icons/unknown.svg").expect("lookup").is_none());
+    }
+}

@@ -125,41 +125,40 @@ impl Render for Island {
                             ),
                     ),
             )
-            .when_some(self.track.as_ref(), |row, track| {
-                let session_id = track.session_id;
-                row.child(
-                    div()
-                        .flex()
-                        .items_center()
-                        .child(media_button(
-                            "previous",
-                            "icons/previous.svg",
-                            track.can_previous,
-                            session_id,
-                            MediaAction::Previous,
-                            cx,
-                        ))
-                        .child(media_button(
-                            "toggle",
-                            if track.playing {
-                                "icons/pause.svg"
-                            } else {
-                                "icons/play.svg"
-                            },
-                            track.can_toggle,
-                            session_id,
-                            MediaAction::Toggle,
-                            cx,
-                        ))
-                        .child(media_button(
-                            "next",
-                            "icons/next.svg",
-                            track.can_next,
-                            session_id,
-                            MediaAction::Next,
-                            cx,
-                        )),
-                )
+            .child({
+                let track = self.track.as_ref();
+                let session_id = track.map_or(0, |track| track.session_id);
+                div()
+                    .flex()
+                    .items_center()
+                    .child(media_button(
+                        "previous",
+                        "icons/previous.svg",
+                        track.is_some_and(|track| track.can_previous),
+                        session_id,
+                        MediaAction::Previous,
+                        cx,
+                    ))
+                    .child(media_button(
+                        "toggle",
+                        if track.is_some_and(|track| track.playing) {
+                            "icons/pause.svg"
+                        } else {
+                            "icons/play.svg"
+                        },
+                        track.is_some_and(|track| track.can_toggle),
+                        session_id,
+                        MediaAction::Toggle,
+                        cx,
+                    ))
+                    .child(media_button(
+                        "next",
+                        "icons/next.svg",
+                        track.is_some_and(|track| track.can_next),
+                        session_id,
+                        MediaAction::Next,
+                        cx,
+                    ))
             })
             .child(
                 div()
@@ -188,7 +187,7 @@ fn media_button(
         .text_color(if enabled {
             rgb(0xf5f6fa)
         } else {
-            rgb(0x646570)
+            rgb(0x8a8c9b)
         })
         .on_click(cx.listener(move |this, _, _, cx| {
             cx.stop_propagation();
@@ -201,5 +200,9 @@ fn media_button(
                 cx.notify();
             }
         }))
-        .child(svg().path(icon).size(px(14.0)))
+        .child(svg().path(icon).size(px(14.0)).text_color(if enabled {
+            rgb(0xf5f6fa)
+        } else {
+            rgb(0x8a8c9b)
+        }))
 }
