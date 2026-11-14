@@ -1,5 +1,6 @@
 mod assets;
 mod island;
+mod volume_view;
 
 use gpui::{App, AppContext, Application, Bounds, WindowBounds, WindowOptions, point, px, size};
 use island::Island;

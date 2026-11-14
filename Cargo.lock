@@ -2375,6 +2375,7 @@ dependencies = [
  "async-channel 2.5.0",
  "raw-window-handle",
  "windows",
+ "windows-core",
 ]
 
 [[package]]
