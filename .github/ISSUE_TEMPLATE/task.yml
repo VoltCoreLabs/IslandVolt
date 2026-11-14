@@ -1,0 +1,25 @@
+name: Техническая задача
+description: Архитектура, документация, проверка стека или инфраструктура
+title: "[Task]: "
+labels: [task]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Цель
+      description: Какой результат нужен и зачем?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Объём работ
+      description: Укажите модули, этап roadmap и зависимости.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Критерии готовности и проверки
+    validations:
+      required: true
