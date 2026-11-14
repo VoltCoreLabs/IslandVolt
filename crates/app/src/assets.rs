@@ -15,6 +15,17 @@ impl AssetSource for Icons {
             "icons/next.svg" => Some(include_bytes!(
                 "../../../assets/icons/phosphor/skip-forward.svg"
             )),
+            "icons/speaker.svg" => Some(include_bytes!(
+                "../../../assets/icons/phosphor/speaker-high.svg"
+            )),
+            "icons/muted.svg" => Some(include_bytes!(
+                "../../../assets/icons/phosphor/speaker-slash.svg"
+            )),
+            "icons/minus.svg" => Some(include_bytes!("../../../assets/icons/phosphor/minus.svg")),
+            "icons/plus.svg" => Some(include_bytes!("../../../assets/icons/phosphor/plus.svg")),
+            "icons/back.svg" => Some(include_bytes!(
+                "../../../assets/icons/phosphor/arrow-left.svg"
+            )),
             _ => None,
         };
         Ok(bytes.map(Cow::Borrowed))
@@ -36,6 +47,11 @@ mod tests {
             "icons/pause.svg",
             "icons/previous.svg",
             "icons/next.svg",
+            "icons/speaker.svg",
+            "icons/muted.svg",
+            "icons/minus.svg",
+            "icons/plus.svg",
+            "icons/back.svg",
         ] {
             let icon = Icons
                 .load(path)

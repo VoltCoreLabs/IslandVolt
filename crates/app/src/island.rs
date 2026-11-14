@@ -3,8 +3,14 @@ use std::time::Duration;
 use chrono::{Local, Timelike};
 use gpui::{Context, IntoElement, Render, Task, Window, div, prelude::*, px, rgb, svg};
 use islandvolt_platform_windows::media::{self, MediaAction, MediaMonitor, Track};
+use islandvolt_platform_windows::volume::{self, VolumeMonitor, VolumeState};
 
 pub struct Island {
+    pub(crate) show_volume: bool,
+    pub(crate) volume: Option<VolumeState>,
+    pub(crate) volume_error: Option<String>,
+    pub(crate) volume_monitor: VolumeMonitor,
+    _volume_task: Task<()>,
     show_date: bool,
     _clock: Task<()>,
     track: Option<Track>,
@@ -44,7 +50,35 @@ impl Island {
                 }
             }
         });
+        let (volume_monitor, volume_updates) = volume::watch();
+        let volume_task = cx.spawn(async move |this, cx| {
+            while let Ok(result) = volume_updates.recv().await {
+                if this
+                    .update(cx, |island, cx| {
+                        match result {
+                            Ok(volume) => {
+                                island.volume = Some(volume);
+                                island.volume_error = None;
+                            }
+                            Err(error) => {
+                                island.volume = None;
+                                island.volume_error = Some(error);
+                            }
+                        }
+                        cx.notify();
+                    })
+                    .is_err()
+                {
+                    break;
+                }
+            }
+        });
         Self {
+            show_volume: false,
+            volume: None,
+            volume_error: None,
+            volume_monitor,
+            _volume_task: volume_task,
             show_date: false,
             _clock: clock,
             track: None,
@@ -58,6 +92,9 @@ impl Island {
 impl Render for Island {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let now = Local::now();
+        if self.show_volume {
+            return crate::volume_view::render(self, cx);
+        }
         let secondary = if let Some(error) = &self.media_error {
             error.clone()
         } else if self.show_date {
@@ -87,6 +124,25 @@ impl Render for Island {
                 this.media_error = None;
                 cx.notify();
             }))
+            .child(
+                div()
+                    .id("open-volume")
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .size(px(26.0))
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        cx.stop_propagation();
+                        this.show_volume = true;
+                        cx.notify();
+                    }))
+                    .child(
+                        svg()
+                            .path("icons/speaker.svg")
+                            .size(px(15.0))
+                            .text_color(rgb(0xe2e3eb)),
+                    ),
+            )
             .child(
                 div()
                     .flex()
@@ -166,6 +222,7 @@ impl Render for Island {
                     .font_weight(gpui::FontWeight::SEMIBOLD)
                     .child(now.format("%H:%M").to_string()),
             )
+            .into_any_element()
     }
 }
 
