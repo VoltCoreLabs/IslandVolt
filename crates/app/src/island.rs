@@ -1,8 +1,8 @@
 use std::time::Duration;
 
 use chrono::{Local, Timelike};
-use gpui::{Context, IntoElement, Render, Task, Window, div, prelude::*, px, rgb};
-use islandvolt_platform_windows::media::{self, MediaMonitor, Track};
+use gpui::{Context, IntoElement, Render, Task, Window, div, prelude::*, px, rgb, svg};
+use islandvolt_platform_windows::media::{self, MediaAction, MediaMonitor, Track};
 
 pub struct Island {
     show_date: bool,
@@ -92,49 +92,73 @@ impl Render for Island {
                     .flex()
                     .items_center()
                     .min_w_0()
-                    .max_w(px(190.0))
+                    .max_w(px(125.0))
                     .gap(px(9.0))
                     .child(div().size(px(7.0)).rounded_full().bg(rgb(0x9b8cff)))
                     .child(
                         div()
-                            .truncate()
-                            .text_xs()
-                            .text_color(rgb(0x9b9ca9))
-                            .child(secondary),
+                            .flex()
+                            .flex_col()
+                            .min_w_0()
+                            .child(
+                                div()
+                                    .truncate()
+                                    .text_xs()
+                                    .text_color(rgb(0xe2e3eb))
+                                    .child(secondary),
+                            )
+                            .when_some(
+                                self.track.as_ref().filter(|track| {
+                                    !self.show_date
+                                        && self.media_error.is_none()
+                                        && !track.artist.trim().is_empty()
+                                }),
+                                |column, track| {
+                                    column.child(
+                                        div()
+                                            .truncate()
+                                            .text_size(px(10.0))
+                                            .text_color(rgb(0x858793))
+                                            .child(track.artist.clone()),
+                                    )
+                                },
+                            ),
                     ),
             )
             .when_some(self.track.as_ref(), |row, track| {
                 let session_id = track.session_id;
-                let enabled = track.can_toggle;
-                let icon = if track.playing { "Ⅱ" } else { "▶" };
                 row.child(
                     div()
-                        .id("media-toggle")
                         .flex()
                         .items_center()
-                        .justify_center()
-                        .size(px(30.0))
-                        .rounded_full()
-                        .text_sm()
-                        .text_color(if enabled {
-                            rgb(0xf5f6fa)
-                        } else {
-                            rgb(0x646570)
-                        })
-                        .when(enabled, |button| {
-                            button
-                                .cursor_pointer()
-                                .on_click(cx.listener(move |this, _, _, cx| {
-                                    cx.stop_propagation();
-                                    this.media_error = this
-                                        .media_monitor
-                                        .toggle(session_id)
-                                        .err()
-                                        .map(str::to_string);
-                                    cx.notify();
-                                }))
-                        })
-                        .child(icon),
+                        .child(media_button(
+                            "previous",
+                            "icons/previous.svg",
+                            track.can_previous,
+                            session_id,
+                            MediaAction::Previous,
+                            cx,
+                        ))
+                        .child(media_button(
+                            "toggle",
+                            if track.playing {
+                                "icons/pause.svg"
+                            } else {
+                                "icons/play.svg"
+                            },
+                            track.can_toggle,
+                            session_id,
+                            MediaAction::Toggle,
+                            cx,
+                        ))
+                        .child(media_button(
+                            "next",
+                            "icons/next.svg",
+                            track.can_next,
+                            session_id,
+                            MediaAction::Next,
+                            cx,
+                        )),
                 )
             })
             .child(
@@ -144,4 +168,38 @@ impl Render for Island {
                     .child(now.format("%H:%M").to_string()),
             )
     }
+}
+
+fn media_button(
+    id: &'static str,
+    icon: &'static str,
+    enabled: bool,
+    session_id: u64,
+    action: MediaAction,
+    cx: &mut Context<Island>,
+) -> impl IntoElement {
+    div()
+        .id(id)
+        .flex()
+        .items_center()
+        .justify_center()
+        .size(px(26.0))
+        .rounded_full()
+        .text_color(if enabled {
+            rgb(0xf5f6fa)
+        } else {
+            rgb(0x646570)
+        })
+        .on_click(cx.listener(move |this, _, _, cx| {
+            cx.stop_propagation();
+            if enabled {
+                this.media_error = this
+                    .media_monitor
+                    .control(session_id, action)
+                    .err()
+                    .map(str::to_string);
+                cx.notify();
+            }
+        }))
+        .child(svg().path(icon).size(px(14.0)))
 }

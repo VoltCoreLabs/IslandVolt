@@ -10,19 +10,24 @@ use windows::{
     Win32::System::Com::{COINIT_MULTITHREADED, CoInitializeEx, CoUninitialize},
 };
 
+mod controls;
+pub use controls::MediaAction;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Track {
     pub title: String,
     pub artist: String,
     pub playing: bool,
     pub can_toggle: bool,
+    pub can_previous: bool,
+    pub can_next: bool,
     pub session_id: u64,
 }
 
 #[derive(Clone, Copy)]
 enum Message {
     Refresh,
-    Toggle(u64),
+    Control(u64, MediaAction),
 }
 
 pub struct MediaMonitor {
@@ -32,8 +37,13 @@ pub struct MediaMonitor {
 impl MediaMonitor {
     /// Queue an action for the session currently displayed by the UI.
     pub fn toggle(&self, session_id: u64) -> Result<(), &'static str> {
+        self.control(session_id, MediaAction::Toggle)
+    }
+
+    /// Queue a media command for the session currently displayed by the UI.
+    pub fn control(&self, session_id: u64, action: MediaAction) -> Result<(), &'static str> {
         self.signals
-            .try_send(Message::Toggle(session_id))
+            .try_send(Message::Control(session_id, action))
             .map_err(|_| "Не удалось отправить команду плееру")
     }
 }
@@ -113,12 +123,12 @@ fn run(
                 }
             }
         }
-        if let Message::Toggle(expected) = message {
+        if let Message::Control(expected, action) = message {
             let outcome = current
                 .as_ref()
                 .filter(|_| expected == session_id)
                 .ok_or_else(|| "Медиасессия изменилась".to_string())
-                .and_then(toggle_playback);
+                .and_then(|session| controls::execute(session, action));
             if let Err(error) = outcome {
                 let _ = updates.try_send(Err(error));
             }
@@ -154,30 +164,8 @@ fn read_track(session: &Session, session_id: u64) -> windows::core::Result<Track
         } else {
             controls.IsPlayEnabled()?
         },
+        can_previous: controls.IsPreviousEnabled()?,
+        can_next: controls.IsNextEnabled()?,
         session_id,
     })
-}
-
-fn toggle_playback(session: &Session) -> Result<(), String> {
-    let info = session
-        .GetPlaybackInfo()
-        .map_err(|error| error.to_string())?;
-    let controls = info.Controls().map_err(|error| error.to_string())?;
-    let playing =
-        info.PlaybackStatus().map_err(|error| error.to_string())? == PlaybackStatus::Playing;
-    let accepted = if playing && controls.IsPauseEnabled().unwrap_or(false) {
-        session
-            .TryPauseAsync()
-            .and_then(|operation| operation.get())
-    } else if !playing && controls.IsPlayEnabled().unwrap_or(false) {
-        session.TryPlayAsync().and_then(|operation| operation.get())
-    } else {
-        return Err("Плеер не поддерживает эту команду".into());
-    }
-    .map_err(|error| error.to_string())?;
-    if accepted {
-        Ok(())
-    } else {
-        Err("Плеер отклонил команду".into())
-    }
 }

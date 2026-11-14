@@ -1,3 +1,4 @@
+use islandvolt_platform_windows::media::MediaAction;
 use std::{sync::mpsc, time::Duration};
 
 #[test]
@@ -23,13 +24,18 @@ fn stale_session_command_is_rejected() {
         while let Ok(result) = updates.recv_blocking() {
             if result.is_err() {
                 let _ = sender.send(result);
-                break;
             }
         }
     });
-    monitor.toggle(u64::MAX).expect("queue command");
-    let result = receiver
-        .recv_timeout(Duration::from_secs(15))
-        .expect("media monitor response");
-    assert!(result.is_err());
+    for action in [
+        MediaAction::Toggle,
+        MediaAction::Previous,
+        MediaAction::Next,
+    ] {
+        monitor.control(u64::MAX, action).expect("queue command");
+        let result = receiver
+            .recv_timeout(Duration::from_secs(15))
+            .expect("media monitor response");
+        assert_eq!(result.unwrap_err(), "Медиасессия изменилась");
+    }
 }
