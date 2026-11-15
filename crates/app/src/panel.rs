@@ -37,7 +37,6 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
         .flex_col()
         .px(px(32.0))
         .pt(px(15.0))
-        .bg(rgb(0x08080b))
         .on_mouse_move(cx.listener(|this, event: &gpui::MouseMoveEvent, _, cx| {
             if this.dragging_volume && event.pressed_button == Some(MouseButton::Left) {
                 crate::volume_slider::set_volume(this, event.position.x, false, cx);
@@ -103,13 +102,13 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
                         .child(width_label)
                         .on_click(cx.listener(|this, _, window, cx| {
                             this.wide = !this.wide;
+                            this.settings.save_width(this.wide);
                             let scale = window.scale_factor();
                             let width = if this.wide { 540.0 } else { 460.0 };
                             if let Err(error) = islandvolt_platform_windows::resize_island(
                                 window,
                                 (width * scale) as i32,
                                 (220.0 * scale) as i32,
-                                (24.0 * scale) as i32,
                             ) {
                                 eprintln!("{error}");
                             }
