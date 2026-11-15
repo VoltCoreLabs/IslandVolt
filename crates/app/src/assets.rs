@@ -26,6 +26,21 @@ impl AssetSource for Icons {
             "icons/back.svg" => Some(include_bytes!(
                 "../../../assets/icons/phosphor/arrow-left.svg"
             )),
+            "pets/volt-cat/idle.svg" => {
+                Some(include_bytes!("../../../assets/pets/volt-cat/idle.svg"))
+            }
+            "pets/volt-cat/blink.svg" => {
+                Some(include_bytes!("../../../assets/pets/volt-cat/blink.svg"))
+            }
+            "pets/volt-cat/happy.svg" => {
+                Some(include_bytes!("../../../assets/pets/volt-cat/happy.svg"))
+            }
+            "pets/volt-cat/happy-up.svg" => {
+                Some(include_bytes!("../../../assets/pets/volt-cat/happy-up.svg"))
+            }
+            "pets/volt-cat/sleep.svg" => {
+                Some(include_bytes!("../../../assets/pets/volt-cat/sleep.svg"))
+            }
             _ => None,
         };
         Ok(bytes.map(Cow::Borrowed))
@@ -39,6 +54,55 @@ impl AssetSource for Icons {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn builtin_pet_frames_exist_rasterize_and_show_different_states() {
+        use islandvolt_features::pets::{Animator, Package};
+        let package =
+            Package::from_json(include_str!("../../../assets/pets/volt-cat/manifest.json"))
+                .expect("built-in package");
+        let mut pet = Animator::new(package, false);
+        let mut frames = std::collections::BTreeMap::new();
+        pet.react();
+        for _ in 0..64 {
+            let path = pet.frame().asset.clone();
+            let data = Icons
+                .load(&path)
+                .expect("asset lookup")
+                .expect("embedded frame");
+            let tree = resvg::usvg::Tree::from_data(&data, &resvg::usvg::Options::default())
+                .expect("valid SVG");
+            let mut pixmap = resvg::tiny_skia::Pixmap::new(48, 48).expect("frame buffer");
+            resvg::render(
+                &tree,
+                resvg::tiny_skia::Transform::identity(),
+                &mut pixmap.as_mut(),
+            );
+            assert!(
+                pixmap
+                    .data()
+                    .as_chunks::<4>()
+                    .0
+                    .iter()
+                    .any(|pixel| pixel[3] != 0)
+            );
+            frames.insert(path, pixmap.take());
+            pet.advance();
+        }
+        assert_eq!(frames.len(), 5, "every manifest frame must be exercised");
+        assert_ne!(
+            frames["pets/volt-cat/idle.svg"],
+            frames["pets/volt-cat/blink.svg"]
+        );
+        assert_ne!(
+            frames["pets/volt-cat/happy.svg"],
+            frames["pets/volt-cat/happy-up.svg"]
+        );
+        assert_ne!(
+            frames["pets/volt-cat/idle.svg"],
+            frames["pets/volt-cat/sleep.svg"]
+        );
+    }
 
     #[test]
     fn media_icons_are_embedded_and_available() {

@@ -8,6 +8,8 @@ pub(crate) struct Preferences {
     pub wide: bool,
     #[serde(default)]
     pub pinned: bool,
+    #[serde(default)]
+    pub pet_hidden: bool,
 }
 
 pub struct Settings {
@@ -83,6 +85,13 @@ impl Settings {
             let _ = self.sender.force_send(*preferences);
         }
     }
+
+    pub fn save_pet_hidden(&self, hidden: bool) {
+        if let Ok(mut preferences) = self.current.lock() {
+            preferences.pet_hidden = hidden;
+            let _ = self.sender.force_send(*preferences);
+        }
+    }
 }
 
 impl Drop for Settings {
@@ -105,6 +114,14 @@ fn write(path: &std::path::Path, preferences: Preferences) -> anyhow::Result<()>
 mod tests {
     use super::*;
     #[test]
+    fn old_preferences_keep_pet_visible_without_resetting_other_choices() {
+        let saved: Preferences = serde_json::from_str(r#"{"wide":true,"pinned":true}"#)
+            .expect("existing preference format");
+        assert!(saved.wide);
+        assert!(saved.pinned);
+        assert!(!saved.pet_hidden);
+    }
+    #[test]
     fn shutdown_flushes_latest_preference() {
         let folder =
             std::env::temp_dir().join(format!("islandvolt-shutdown-{}", std::process::id()));
@@ -113,11 +130,13 @@ mod tests {
         settings.save_width(false);
         settings.save_width(true);
         settings.save_pinned(true);
+        settings.save_pet_hidden(true);
         shutdown.finish();
         let saved: Preferences =
             serde_json::from_slice(&std::fs::read(&path).expect("saved settings")).expect("parse");
         assert!(saved.wide);
         assert!(saved.pinned);
+        assert!(saved.pet_hidden);
         std::fs::remove_file(path).expect("remove test file");
         std::fs::remove_dir(folder).expect("remove test folder");
     }

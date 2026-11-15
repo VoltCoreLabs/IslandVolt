@@ -29,7 +29,7 @@ impl Island {
                     .gap(px(12.0))
                     .min_w_0()
                     .max_w(px(230.0))
-                    .child(div().size(px(8.0)).rounded_full().bg(rgb(0xc86d8b)))
+                    .when(!self.pet_hidden, |view| view.child(self.pet.clone()))
                     .child(
                         div()
                             .truncate()

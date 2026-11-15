@@ -123,6 +123,7 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
                 .items_center()
                 .justify_center()
                 .gap(px(14.0))
+                .when(!island.pet_hidden, |view| view.child(island.pet.clone()))
                 .mt(px(7.0))
                 .child(media_button(
                     "panel-previous",
@@ -209,44 +210,10 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
                 })
                 .on_click(cx.listener(|this, _, _, cx| {
                     this.show_sources = true;
+                    this.sync_pet(cx);
                     cx.notify();
                 })),
         )
-        .child(
-            div()
-                .flex()
-                .items_center()
-                .justify_between()
-                .mt(px(8.0))
-                .child(
-                    div()
-                        .id("pin-panel")
-                        .text_xs()
-                        .text_color(rgb(0xc8c9d4))
-                        .child(if island.pinned {
-                            "Открепить панель"
-                        } else {
-                            "Закрепить панель"
-                        })
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            this.pinned = !this.pinned;
-                            this.settings.save_pinned(this.pinned);
-                            cx.notify();
-                        })),
-                )
-                .child(
-                    div()
-                        .text_size(px(10.0))
-                        .text_color(rgb(0x858793))
-                        .child("← → звук · M mute · Esc свернуть"),
-                ),
-        )
-        .child(div().text_size(px(10.0)).text_color(rgb(0x999ba9)).child(
-            if island.keyboard.unavailable {
-                "Ctrl+Alt+Space недоступна · используйте наведение или трей"
-            } else {
-                "Ctrl+Alt+Space · открыть / свернуть"
-            },
-        ))
+        .child(crate::panel_footer::render(island, cx))
         .into_any_element()
 }

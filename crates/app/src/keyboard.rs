@@ -57,6 +57,7 @@ impl Island {
         self.keyboard.previous = Some(FocusRestore::capture());
         self.keyboard.open = true;
         self.hidden = false;
+        self.sync_pet(cx);
         self.hover.pending.take();
         self.expanded = true;
         self.transition.set(true);
@@ -78,6 +79,7 @@ impl Island {
         self.pinned = false;
         self.settings.save_pinned(false);
         self.show_sources = false;
+        self.sync_pet(cx);
         self.dragging_volume = false;
         self.expanded = false;
         self.transition.set(false);
@@ -96,8 +98,12 @@ impl Island {
             return;
         }
         match event.keystroke.key.as_str() {
-            "escape" if self.show_sources => self.show_sources = false,
+            "escape" if self.show_sources => {
+                self.show_sources = false;
+                self.sync_pet(cx);
+            }
             "escape" => self.dismiss_panel(window, cx),
+            "p" => self.pet.update(cx, |pet, cx| pet.react(cx)),
             "left" => {
                 self.volume_error = self
                     .volume_monitor

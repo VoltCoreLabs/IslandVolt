@@ -5,6 +5,8 @@ mod island;
 mod keyboard;
 mod layout;
 mod panel;
+mod panel_footer;
+mod pet;
 mod settings;
 mod silhouette;
 mod source_picker;
@@ -66,7 +68,7 @@ fn main() {
             if smoke_test {
                 let timer = cx
                     .background_executor()
-                    .timer(std::time::Duration::from_secs(2));
+                    .timer(std::time::Duration::from_secs(7));
                 cx.spawn(async move |cx| {
                     timer.await;
                     let _ = cx.update(|cx| cx.quit());

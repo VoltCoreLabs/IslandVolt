@@ -17,6 +17,7 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
                 .child("Назад к управлению")
                 .on_click(cx.listener(|this, _, _, cx| {
                     this.show_sources = false;
+                    this.sync_pet(cx);
                     cx.notify();
                 })),
         )
@@ -76,6 +77,7 @@ fn option(id: Option<u64>, name: String, selected: bool, cx: &mut Context<Island
             match this.media_monitor.select(id) {
                 Ok(()) => {
                     this.show_sources = false;
+                    this.sync_pet(cx);
                     this.media_error = None;
                 }
                 Err(error) => this.media_error = Some(error.into()),

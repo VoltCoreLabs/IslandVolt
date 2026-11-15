@@ -3,6 +3,8 @@
 Начат прототип: `crates/app` содержит оболочку GPUI, карточки и настройки;
 `crates/platform-windows` — адаптеры окна, медиасессий, громкости, трея и hotkey.
 Клавиатура и фокус размещены в `app/src/keyboard.rs`, жизненный цикл трея — в `app/src/tray.rs`.
+Добавлен `islandvolt-features`: `src/pets` содержит формат пакета, переходы и доменные тесты.
+GPUI-питомец расположен в `app/src/pet.rs`, данные и векторные кадры — в `assets/pets/volt-cat`.
 Остальные каталоги пока служат каркасом. Пустые каталоги сохраняются через `.gitkeep`,
 чтобы каркас был доступен после clone. При появлении содержимого placeholder удаляется.
 
@@ -35,7 +37,7 @@ islandvolt/
 │  │  ├─ media/
 │  │  ├─ audio/
 │  │  ├─ clock/
-│  │  ├─ pets/
+│  │  ├─ src/pets/
 │  │  ├─ settings/
 │  │  ├─ launcher/
 │  │  ├─ input_language/
