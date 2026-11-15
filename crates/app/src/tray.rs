@@ -23,6 +23,7 @@ pub fn create(window: &Window, cx: &mut Context<Island>) -> (Option<Tray>, Optio
                                     eprintln!("Не удалось изменить видимость острова: {error}");
                                 } else {
                                     island.hidden = !visible;
+                                    island.sync_pet(cx);
                                     if !visible {
                                         island.expanded = false;
                                         island.transition.set(false);

@@ -2437,7 +2437,17 @@ dependencies = [
  "async-channel 2.5.0",
  "chrono",
  "gpui",
+ "islandvolt-features",
  "islandvolt-platform-windows",
+ "resvg",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "islandvolt-features"
+version = "0.1.0"
+dependencies = [
  "serde",
  "serde_json",
 ]

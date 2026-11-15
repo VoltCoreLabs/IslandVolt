@@ -8,6 +8,8 @@ use islandvolt_platform_windows::tray::Tray;
 use islandvolt_platform_windows::volume::{self, VolumeMonitor, VolumeState};
 
 pub struct Island {
+    pub(crate) pet: gpui::Entity<crate::pet::Pet>,
+    pub(crate) pet_hidden: bool,
     pub(crate) sources: Vec<Source>,
     pub(crate) selected_source: Option<u64>,
     pub(crate) show_sources: bool,
@@ -104,6 +106,8 @@ impl Island {
         let mut transition = Transition::new(islandvolt_platform_windows::animations_enabled());
         transition.set(preferences.pinned);
         Self {
+            pet: cx.new(|cx| crate::pet::Pet::new(cx, !preferences.pet_hidden)),
+            pet_hidden: preferences.pet_hidden,
             sources: Vec::new(),
             selected_source: None,
             show_sources: false,
