@@ -24,6 +24,7 @@ pub enum Action {
     Increase,
     Decrease,
     ToggleMute,
+    Set(u8),
 }
 
 #[derive(Clone, Copy)]
@@ -137,6 +138,8 @@ fn apply_and_read(device: &IAudioEndpointVolume, message: Message) -> Result<Vol
                 device.SetMasterVolumeLevelScalar((current - 0.05).max(0.0), std::ptr::null())
             }
             Message::Control(Action::ToggleMute) => device.SetMute(!muted, std::ptr::null()),
+            Message::Control(Action::Set(value)) => device
+                .SetMasterVolumeLevelScalar(f32::from(value.min(100)) / 100.0, std::ptr::null()),
             _ => Ok(()),
         }
         .map_err(|error| error.to_string())?;
