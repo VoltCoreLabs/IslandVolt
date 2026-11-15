@@ -2,7 +2,7 @@
 pub fn dimensions(wide: bool, progress: f32) -> (f32, f32) {
     (
         if wide { 540.0 } else { 460.0 },
-        76.0 + 144.0 * progress.clamp(0.0, 1.0),
+        64.0 + 156.0 * progress.clamp(0.0, 1.0),
     )
 }
 

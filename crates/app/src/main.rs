@@ -5,6 +5,7 @@ mod island;
 mod layout;
 mod panel;
 mod settings;
+mod silhouette;
 mod transition;
 mod volume_slider;
 
@@ -30,7 +31,7 @@ fn main() {
             }
             let size = size(
                 px(crate::layout::dimensions(preferences.wide, 0.0).0),
-                px(76.0),
+                px(crate::layout::dimensions(preferences.wide, 0.0).1),
             );
             let mut bounds = Bounds::centered(None, size, cx);
             if let Some(display) = cx.primary_display() {
@@ -40,7 +41,7 @@ fn main() {
                 WindowOptions {
                     window_bounds: Some(WindowBounds::Windowed(bounds)),
                     titlebar: None,
-                    window_background: WindowBackgroundAppearance::Opaque,
+                    window_background: WindowBackgroundAppearance::Transparent,
                     is_resizable: false,
                     focus: false,
                     ..Default::default()
