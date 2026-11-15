@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::transition::Transition;
 use chrono::{Local, Timelike};
-use gpui::{Context, IntoElement, Render, Task, Window, div, prelude::*, rgb};
+use gpui::{Context, IntoElement, Render, Task, Window, div, prelude::*};
 use islandvolt_platform_windows::media::{self, MediaMonitor, Track};
 use islandvolt_platform_windows::tray::{Tray, TrayAction};
 use islandvolt_platform_windows::volume::{self, VolumeMonitor, VolumeState};
@@ -193,10 +193,10 @@ impl Render for Island {
         div()
             .id("island-shell")
             .size_full()
+            .relative()
             .overflow_hidden()
             .font_family("Golos Text")
             .track_focus(&self.focus)
-            .bg(rgb(0x08080b))
             .on_mouse_down(
                 gpui::MouseButton::Left,
                 cx.listener(|this, _, window, _| window.focus(&this.focus)),
@@ -258,6 +258,7 @@ impl Render for Island {
                 }
                 this.hover_changed(*hovered, cx);
             }))
+            .child(crate::silhouette::background())
             .child(content)
     }
 }

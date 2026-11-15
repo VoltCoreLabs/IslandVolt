@@ -21,6 +21,7 @@ impl Island {
             .items_center()
             .justify_between()
             .px(px(38.0))
+            .pb(px(7.0))
             .child(
                 div()
                     .flex()
