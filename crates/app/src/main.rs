@@ -9,14 +9,15 @@ mod panel_footer;
 mod pet;
 mod settings;
 mod silhouette;
+mod smoke;
 mod source_picker;
 mod transition;
 mod tray;
 mod volume_slider;
 
 use gpui::{
-    App, AppContext, Application, Bounds, WindowBackgroundAppearance, WindowBounds, WindowOptions,
-    point, px, size,
+    App, AppContext, Application, Bounds, WindowBackgroundAppearance, WindowBounds, WindowKind,
+    WindowOptions, point, px, size,
 };
 use island::Island;
 
@@ -42,10 +43,11 @@ fn main() {
             if let Some(display) = cx.primary_display() {
                 bounds.origin = point(bounds.origin.x, display.bounds().origin.y);
             }
-            if let Err(error) = cx.open_window(
+            let opened = cx.open_window(
                 WindowOptions {
                     window_bounds: Some(WindowBounds::Windowed(bounds)),
                     titlebar: None,
+                    kind: WindowKind::PopUp,
                     window_background: WindowBackgroundAppearance::Transparent,
                     is_resizable: false,
                     focus: false,
@@ -61,9 +63,14 @@ fn main() {
                     });
                     cx.new(|cx| Island::new(window, cx, settings, preferences))
                 },
-            ) {
-                eprintln!("Не удалось открыть окно IslandVolt: {error}");
-                cx.quit();
+            );
+            match opened {
+                Ok(handle) if smoke_test => smoke::check_layout(handle, cx),
+                Ok(_) => {}
+                Err(error) => {
+                    eprintln!("Не удалось открыть окно IslandVolt: {error}");
+                    cx.quit();
+                }
             }
             if smoke_test {
                 let timer = cx

@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::transition::Transition;
 use chrono::{Local, Timelike};
-use gpui::{Context, IntoElement, Render, Task, Window, div, prelude::*};
+use gpui::{Context, IntoElement, Render, Task, Window, div, prelude::*, px, size};
 use islandvolt_platform_windows::media::{self, MediaMonitor, Source, Track};
 use islandvolt_platform_windows::tray::Tray;
 use islandvolt_platform_windows::volume::{self, VolumeMonitor, VolumeState};
@@ -153,11 +153,13 @@ impl Render for Island {
         );
         if self.last_size != Some(physical) {
             self.last_size = Some(physical);
+            // GPUI queues the native resize outside the borrowed Window update.
+            // A direct SetWindowPos here reenters WM_SIZE before GPUI can update its viewport.
+            window.resize(size(px(width), px(height)));
             window.defer(cx, move |window, _| {
-                if let Err(error) =
-                    islandvolt_platform_windows::resize_island(window, physical.0, physical.1)
+                if let Err(error) = islandvolt_platform_windows::position_island(window, physical.0)
                 {
-                    eprintln!("Не удалось изменить размер острова: {error}");
+                    eprintln!("Не удалось расположить остров у верхнего края: {error}");
                 }
             });
         }
@@ -171,7 +173,8 @@ impl Render for Island {
         };
         div()
             .id("island-shell")
-            .size_full()
+            .w(px(width))
+            .h(px(height))
             .relative()
             .overflow_hidden()
             .font_family("Golos Text")
@@ -189,7 +192,7 @@ impl Render for Island {
                 }
                 this.hover_changed(*hovered, cx);
             }))
-            .child(crate::silhouette::background())
+            .child(crate::silhouette::background(width, height))
             .child(content)
     }
 }
