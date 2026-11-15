@@ -11,7 +11,21 @@ use windows::{
 };
 
 mod controls;
+mod sessions;
 pub use controls::MediaAction;
+
+#[derive(Clone, Debug)]
+pub struct Source {
+    pub id: u64,
+    pub name: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct MediaState {
+    pub track: Option<Track>,
+    pub sources: Vec<Source>,
+    pub selected: Option<u64>,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Track {
@@ -28,6 +42,7 @@ pub struct Track {
 enum Message {
     Refresh,
     Control(u64, MediaAction),
+    Select(Option<u64>),
 }
 
 pub struct MediaMonitor {
@@ -35,6 +50,12 @@ pub struct MediaMonitor {
 }
 
 impl MediaMonitor {
+    /// Select a stable session ID or return to Windows' automatic choice.
+    pub fn select(&self, id: Option<u64>) -> Result<(), &'static str> {
+        self.signals
+            .try_send(Message::Select(id))
+            .map_err(|_| "Не удалось выбрать плеер")
+    }
     /// Queue an action for the session currently displayed by the UI.
     pub fn toggle(&self, session_id: u64) -> Result<(), &'static str> {
         self.control(session_id, MediaAction::Toggle)
@@ -56,7 +77,7 @@ impl Drop for MediaMonitor {
 
 pub fn watch() -> (
     MediaMonitor,
-    async_channel::Receiver<Result<Option<Track>, String>>,
+    async_channel::Receiver<Result<MediaState, String>>,
 ) {
     let (signals, events) = async_channel::bounded(8);
     let (updates, receiver) = async_channel::bounded(8);
@@ -81,7 +102,7 @@ pub fn watch() -> (
 fn run(
     events: &async_channel::Receiver<Message>,
     notify: &async_channel::Sender<Message>,
-    updates: &async_channel::Sender<Result<Option<Track>, String>>,
+    updates: &async_channel::Sender<Result<MediaState, String>>,
 ) -> windows::core::Result<()> {
     let manager = Manager::RequestAsync()?.get()?;
     let manager_signal = notify.clone();
@@ -89,13 +110,40 @@ fn run(
         let _ = manager_signal.try_send(Message::Refresh);
         Ok(())
     }))?;
+    let list_signal = notify.clone();
+    let list_token = match manager.SessionsChanged(&TypedEventHandler::new(move |_, _| {
+        let _ = list_signal.try_send(Message::Refresh);
+        Ok(())
+    })) {
+        Ok(token) => token,
+        Err(error) => {
+            let _ = manager.RemoveCurrentSessionChanged(manager_token);
+            return Err(error);
+        }
+    };
     let mut subscribed: Option<(Session, i64, i64)> = None;
-    let mut session_id = 0_u64;
+    let mut sessions = sessions::Sessions::new();
+    let mut selected = None;
     let _ = notify.try_send(Message::Refresh);
     while let Ok(message) = events.recv_blocking() {
-        let current = manager.GetCurrentSession().ok();
+        if let Err(error) = sessions.refresh(&manager) {
+            let _ = updates.try_send(Err(error.to_string()));
+            continue;
+        }
+        if let Message::Select(id) = message {
+            if id.is_none_or(|id| sessions.contains(id)) {
+                selected = id;
+            } else {
+                let _ = updates.try_send(Err("Плеер больше недоступен".into()));
+            }
+        }
+        if selected.is_some_and(|id| !sessions.contains(id)) {
+            selected = None;
+        }
+        let chosen = sessions.choose(selected, &manager);
+        let session_id = chosen.as_ref().map_or(0, |(id, _)| *id);
+        let current = chosen.map(|(_, session)| session);
         if subscribed.as_ref().map(|entry| &entry.0) != current.as_ref() {
-            session_id = session_id.wrapping_add(1);
             unsubscribe(subscribed.take());
             if let Some(session) = current.as_ref() {
                 let properties_signal = notify.clone();
@@ -134,12 +182,18 @@ fn run(
             }
         }
         let track = current.and_then(|session| read_track(&session, session_id).ok());
-        if updates.try_send(Ok(track)).is_err() && updates.is_closed() {
+        let state = MediaState {
+            track,
+            sources: sessions.sources(),
+            selected,
+        };
+        if updates.try_send(Ok(state)).is_err() && updates.is_closed() {
             break;
         }
     }
     unsubscribe(subscribed);
     let _ = manager.RemoveCurrentSessionChanged(manager_token);
+    let _ = manager.RemoveSessionsChanged(list_token);
     Ok(())
 }
 
