@@ -57,8 +57,10 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
             cx.listener(|this, event: &gpui::MouseUpEvent, _, cx| {
                 if this.dragging_volume {
                     crate::volume_slider::set_volume(this, event.position.x, true, cx);
-                    this.expanded = false;
-                    this.transition.set(false);
+                    if !this.pinned {
+                        this.expanded = false;
+                        this.transition.set(false);
+                    }
                 }
                 this.dragging_volume = false;
                 cx.notify();
@@ -196,5 +198,33 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
                 ),
         )
         .child(crate::volume_slider::render(percent, enabled, cx))
+        .child(
+            div()
+                .flex()
+                .items_center()
+                .justify_between()
+                .mt(px(8.0))
+                .child(
+                    div()
+                        .id("pin-panel")
+                        .text_xs()
+                        .text_color(rgb(0xc8c9d4))
+                        .child(if island.pinned {
+                            "Открепить панель"
+                        } else {
+                            "Закрепить панель"
+                        })
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            this.pinned = !this.pinned;
+                            cx.notify();
+                        })),
+                )
+                .child(
+                    div()
+                        .text_size(px(10.0))
+                        .text_color(rgb(0x858793))
+                        .child("← → звук · M mute · Esc свернуть"),
+                ),
+        )
         .into_any_element()
 }
