@@ -13,7 +13,8 @@ use gpui::{
 use island::Island;
 
 fn main() {
-    let (settings, wide) = settings::Settings::open();
+    let smoke_test = std::env::args().any(|argument| argument == "--smoke-test");
+    let (settings, wide, shutdown) = settings::Settings::open();
     Application::new()
         .with_assets(assets::Icons)
         .run(move |cx: &mut App| {
@@ -43,11 +44,26 @@ fn main() {
                     if let Err(error) = islandvolt_platform_windows::configure_island(window) {
                         eprintln!("Не удалось настроить окно острова: {error}");
                     }
-                    cx.new(|cx| Island::new(cx, settings, wide))
+                    window.on_window_should_close(cx, |_, cx| {
+                        cx.quit();
+                        true
+                    });
+                    cx.new(|cx| Island::new(window, cx, settings, wide))
                 },
             ) {
                 eprintln!("Не удалось открыть окно IslandVolt: {error}");
                 cx.quit();
             }
+            if smoke_test {
+                let timer = cx
+                    .background_executor()
+                    .timer(std::time::Duration::from_secs(2));
+                cx.spawn(async move |cx| {
+                    timer.await;
+                    let _ = cx.update(|cx| cx.quit());
+                })
+                .detach();
+            }
         });
+    shutdown.finish();
 }

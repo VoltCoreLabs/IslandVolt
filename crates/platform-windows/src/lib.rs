@@ -1,6 +1,7 @@
 //! Windows window integration for the island prototype.
 
 pub mod media;
+pub mod tray;
 pub mod volume;
 
 /// Read the Windows client-area animation preference without changing it.
@@ -34,6 +35,17 @@ fn hwnd(window: &impl HasWindowHandle) -> Result<HWND, String> {
         return Err("Ожидалось окно Windows".into());
     };
     Ok(HWND(raw.hwnd.get() as *mut _))
+}
+
+/// Change visibility without stealing focus from the active application.
+pub fn set_visible(window: &impl HasWindowHandle, visible: bool) -> Result<(), String> {
+    use windows::Win32::UI::WindowsAndMessaging::{SW_HIDE, SW_SHOWNA, ShowWindow};
+    let hwnd = hwnd(window)?;
+    // SAFETY: the handle is borrowed from the live GPUI window.
+    unsafe {
+        let _ = ShowWindow(hwnd, if visible { SW_SHOWNA } else { SW_HIDE });
+    }
+    Ok(())
 }
 
 /// Keep the native window topmost; GPUI owns its visual shape and antialiasing.
