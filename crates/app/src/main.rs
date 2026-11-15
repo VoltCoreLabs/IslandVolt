@@ -6,6 +6,7 @@ mod layout;
 mod panel;
 mod settings;
 mod silhouette;
+mod source_picker;
 mod transition;
 mod volume_slider;
 

@@ -3,13 +3,18 @@ use gpui::{AnyElement, Context, IntoElement, MouseButton, div, prelude::*, px, r
 use islandvolt_platform_windows::{media::MediaAction, volume::Action};
 
 pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
+    if island.show_sources {
+        return crate::source_picker::render(island, cx);
+    }
     let track = island.track.as_ref();
     let id = track.map_or(0, |track| track.session_id);
-    let title = track
-        .map(|track| track.title.as_str())
-        .filter(|title| !title.trim().is_empty())
-        .unwrap_or("Нет воспроизведения")
-        .to_owned();
+    let title = island.media_error.clone().unwrap_or_else(|| {
+        track
+            .map(|track| track.title.as_str())
+            .filter(|title| !title.trim().is_empty())
+            .unwrap_or("Нет воспроизведения")
+            .to_owned()
+    });
     let artist = track
         .map(|track| track.artist.as_str())
         .filter(|artist| !artist.trim().is_empty())
@@ -105,18 +110,9 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
                         .text_xs()
                         .text_color(rgb(0xc8c9d4))
                         .child(width_label)
-                        .on_click(cx.listener(|this, _, window, cx| {
+                        .on_click(cx.listener(|this, _, _, cx| {
                             this.wide = !this.wide;
                             this.settings.save_width(this.wide);
-                            let scale = window.scale_factor();
-                            let width = if this.wide { 540.0 } else { 460.0 };
-                            if let Err(error) = islandvolt_platform_windows::resize_island(
-                                window,
-                                (width * scale) as i32,
-                                (220.0 * scale) as i32,
-                            ) {
-                                eprintln!("{error}");
-                            }
                             cx.notify();
                         })),
                 ),
@@ -201,6 +197,21 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
                 ),
         )
         .child(crate::volume_slider::render(percent, enabled, cx))
+        .child(
+            div()
+                .id("choose-source")
+                .text_xs()
+                .text_color(rgb(0xb4b6c2))
+                .child(if island.selected_source.is_some() {
+                    "Плеер выбран · изменить"
+                } else {
+                    "Плеер: автоматически · изменить"
+                })
+                .on_click(cx.listener(|this, _, _, cx| {
+                    this.show_sources = true;
+                    cx.notify();
+                })),
+        )
         .child(
             div()
                 .flex()

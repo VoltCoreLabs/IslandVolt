@@ -3,11 +3,14 @@ use std::time::Duration;
 use crate::transition::Transition;
 use chrono::{Local, Timelike};
 use gpui::{Context, IntoElement, Render, Task, Window, div, prelude::*};
-use islandvolt_platform_windows::media::{self, MediaMonitor, Track};
+use islandvolt_platform_windows::media::{self, MediaMonitor, Source, Track};
 use islandvolt_platform_windows::tray::{Tray, TrayAction};
 use islandvolt_platform_windows::volume::{self, VolumeMonitor, VolumeState};
 
 pub struct Island {
+    pub(crate) sources: Vec<Source>,
+    pub(crate) selected_source: Option<u64>,
+    pub(crate) show_sources: bool,
     pub(crate) hover: crate::hover::Hover,
     hidden: bool,
     _tray: Option<Tray>,
@@ -57,7 +60,11 @@ impl Island {
                 if this
                     .update(cx, |island, cx| {
                         match result {
-                            Ok(track) => island.track = track,
+                            Ok(state) => {
+                                island.track = state.track;
+                                island.sources = state.sources;
+                                island.selected_source = state.selected;
+                            }
                             Err(error) => island.media_error = Some(error),
                         }
                         cx.notify();
@@ -133,6 +140,9 @@ impl Island {
         let mut transition = Transition::new(islandvolt_platform_windows::animations_enabled());
         transition.set(preferences.pinned);
         Self {
+            sources: Vec::new(),
+            selected_source: None,
+            show_sources: false,
             hover: crate::hover::Hover {
                 inside: false,
                 pending: None,
