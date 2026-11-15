@@ -2,12 +2,14 @@ mod assets;
 mod compact;
 mod hover;
 mod island;
+mod keyboard;
 mod layout;
 mod panel;
 mod settings;
 mod silhouette;
 mod source_picker;
 mod transition;
+mod tray;
 mod volume_slider;
 
 use gpui::{

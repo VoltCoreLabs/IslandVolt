@@ -4,7 +4,7 @@ use crate::transition::Transition;
 use chrono::{Local, Timelike};
 use gpui::{Context, IntoElement, Render, Task, Window, div, prelude::*};
 use islandvolt_platform_windows::media::{self, MediaMonitor, Source, Track};
-use islandvolt_platform_windows::tray::{Tray, TrayAction};
+use islandvolt_platform_windows::tray::Tray;
 use islandvolt_platform_windows::volume::{self, VolumeMonitor, VolumeState};
 
 pub struct Island {
@@ -12,11 +12,12 @@ pub struct Island {
     pub(crate) selected_source: Option<u64>,
     pub(crate) show_sources: bool,
     pub(crate) hover: crate::hover::Hover,
-    hidden: bool,
+    pub(crate) hidden: bool,
+    pub(crate) keyboard: crate::keyboard::Keyboard,
     _tray: Option<Tray>,
     _tray_task: Option<Task<()>>,
     pub(crate) pinned: bool,
-    focus: gpui::FocusHandle,
+    pub(crate) focus: gpui::FocusHandle,
     pub(crate) settings: crate::settings::Settings,
     pub(crate) expanded: bool,
     pub(crate) wide: bool,
@@ -98,45 +99,8 @@ impl Island {
                 }
             }
         });
-        let (tray, tray_task) = match Tray::new() {
-            Ok((tray, events)) => {
-                let task = cx.spawn_in(window, async move |this, cx| {
-                    while let Ok(action) = events.recv().await {
-                        if this
-                            .update_in(cx, |island, window, cx| match action {
-                                TrayAction::Quit => cx.quit(),
-                                TrayAction::Show | TrayAction::Hide => {
-                                    let visible = matches!(action, TrayAction::Show);
-                                    if let Err(error) =
-                                        islandvolt_platform_windows::set_visible(window, visible)
-                                    {
-                                        eprintln!("Не удалось изменить видимость острова: {error}");
-                                    } else {
-                                        island.hidden = !visible;
-                                        if !visible {
-                                            island.expanded = false;
-                                            island.transition.set(false);
-                                        } else if island.pinned {
-                                            island.expanded = true;
-                                            island.transition.set(true);
-                                        }
-                                        cx.notify();
-                                    }
-                                }
-                            })
-                            .is_err()
-                        {
-                            break;
-                        }
-                    }
-                });
-                (Some(tray), Some(task))
-            }
-            Err(error) => {
-                eprintln!("Не удалось создать трей IslandVolt: {error}");
-                (None, None)
-            }
-        };
+        let (tray, tray_task) = crate::tray::create(window, cx);
+        let keyboard = crate::keyboard::Keyboard::new(window, cx);
         let mut transition = Transition::new(islandvolt_platform_windows::animations_enabled());
         transition.set(preferences.pinned);
         Self {
@@ -148,6 +112,7 @@ impl Island {
                 pending: None,
             },
             hidden: false,
+            keyboard,
             _tray: tray,
             _tray_task: tray_task,
             pinned: preferences.pinned,
@@ -211,56 +176,8 @@ impl Render for Island {
                 gpui::MouseButton::Left,
                 cx.listener(|this, _, window, _| window.focus(&this.focus)),
             )
-            .on_key_down(cx.listener(|this, event: &gpui::KeyDownEvent, _, cx| {
-                use islandvolt_platform_windows::volume::Action;
-                let handled = match event.keystroke.key.as_str() {
-                    "escape" => {
-                        this.pinned = false;
-                        this.settings.save_pinned(false);
-                        this.expanded = false;
-                        this.transition.set(false);
-                        true
-                    }
-                    "left" => {
-                        this.volume_error = this
-                            .volume_monitor
-                            .control(Action::Decrease)
-                            .err()
-                            .map(str::to_string);
-                        true
-                    }
-                    "right" => {
-                        this.volume_error = this
-                            .volume_monitor
-                            .control(Action::Increase)
-                            .err()
-                            .map(str::to_string);
-                        true
-                    }
-                    "m" => {
-                        this.volume_error = this
-                            .volume_monitor
-                            .control(Action::ToggleMute)
-                            .err()
-                            .map(str::to_string);
-                        true
-                    }
-                    "space" => {
-                        if let Some(track) = &this.track {
-                            this.media_error = this
-                                .media_monitor
-                                .toggle(track.session_id)
-                                .err()
-                                .map(str::to_string);
-                        }
-                        true
-                    }
-                    _ => false,
-                };
-                if handled {
-                    cx.stop_propagation();
-                    cx.notify();
-                }
+            .on_key_down(cx.listener(|this, event, window, cx| {
+                this.key_down(event, window, cx);
             }))
             .on_hover(cx.listener(|this, hovered, _, cx| {
                 if this.hidden {
