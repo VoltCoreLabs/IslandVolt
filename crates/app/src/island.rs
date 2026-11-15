@@ -2,11 +2,12 @@ use std::time::Duration;
 
 use crate::transition::Transition;
 use chrono::{Local, Timelike};
-use gpui::{Context, IntoElement, Render, Task, Window, div, prelude::*, rgb};
+use gpui::{Context, IntoElement, Render, Task, Window, div, prelude::*, px, rgb};
 use islandvolt_platform_windows::media::{self, MediaMonitor, Track};
 use islandvolt_platform_windows::volume::{self, VolumeMonitor, VolumeState};
 
 pub struct Island {
+    pub(crate) settings: crate::settings::Settings,
     pub(crate) expanded: bool,
     pub(crate) wide: bool,
     pub(crate) dragging_volume: bool,
@@ -25,7 +26,7 @@ pub struct Island {
 }
 
 impl Island {
-    pub fn new(cx: &mut Context<Self>) -> Self {
+    pub fn new(cx: &mut Context<Self>, settings: crate::settings::Settings, wide: bool) -> Self {
         let executor = cx.background_executor().clone();
         let clock = cx.spawn(async move |this, cx| {
             loop {
@@ -79,8 +80,9 @@ impl Island {
             }
         });
         Self {
+            settings,
             expanded: false,
-            wide: false,
+            wide,
             dragging_volume: false,
             last_volume_command: None,
             transition: Transition::new(islandvolt_platform_windows::animations_enabled()),
@@ -105,7 +107,6 @@ impl Render for Island {
         let expanded_width = if self.wide { 540.0 } else { 460.0 };
         let width = 400.0 + (expanded_width - 400.0) * progress;
         let height = 76.0 + 144.0 * progress;
-        let radius = 24.0;
         let scale = window.scale_factor();
         let physical = (
             (width * scale).round() as i32,
@@ -114,12 +115,9 @@ impl Render for Island {
         if self.last_size != Some(physical) {
             self.last_size = Some(physical);
             window.defer(cx, move |window, _| {
-                if let Err(error) = islandvolt_platform_windows::resize_island(
-                    window,
-                    physical.0,
-                    physical.1,
-                    (radius * scale).round() as i32,
-                ) {
+                if let Err(error) =
+                    islandvolt_platform_windows::resize_island(window, physical.0, physical.1)
+                {
                     eprintln!("Не удалось изменить размер острова: {error}");
                 }
             });
@@ -135,6 +133,8 @@ impl Render for Island {
         div()
             .id("island-shell")
             .size_full()
+            .rounded_b(px(32.0))
+            .overflow_hidden()
             .bg(rgb(0x08080b))
             .on_hover(cx.listener(|this, hovered, _, cx| {
                 if *hovered || !this.dragging_volume {

@@ -2363,9 +2363,12 @@ name = "islandvolt-app"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-channel 2.5.0",
  "chrono",
  "gpui",
  "islandvolt-platform-windows",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
