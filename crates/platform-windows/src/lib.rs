@@ -1,5 +1,6 @@
 //! Windows window integration for the island prototype.
 
+mod frame;
 pub mod media;
 pub mod shortcut;
 pub mod tray;
@@ -52,6 +53,7 @@ pub fn set_visible(window: &impl HasWindowHandle, visible: bool) -> Result<(), S
 /// Keep the native window topmost; GPUI owns its visual shape and antialiasing.
 pub fn configure_island(window: &impl HasWindowHandle) -> Result<(), String> {
     let hwnd = hwnd(window)?;
+    frame::remove_native_frame(hwnd);
     // SAFETY: the handle is borrowed from the live GPUI window.
     unsafe {
         SetWindowPos(
@@ -67,8 +69,8 @@ pub fn configure_island(window: &impl HasWindowHandle) -> Result<(), String> {
     .map_err(|error| error.to_string())
 }
 
-/// Resize around the monitor center, flush with its top edge.
-pub fn resize_island(window: &impl HasWindowHandle, width: i32, height: i32) -> Result<(), String> {
+/// Anchor at monitor top/center without resizing; GPUI owns the content size.
+pub fn position_island(window: &impl HasWindowHandle, width: i32) -> Result<(), String> {
     let hwnd = hwnd(window)?;
     // SAFETY: all handles and the output buffer remain valid throughout the calls.
     unsafe {
@@ -86,9 +88,9 @@ pub fn resize_island(window: &impl HasWindowHandle, width: i32, height: i32) -> 
             Some(HWND_TOPMOST),
             left,
             info.rcMonitor.top,
-            width,
-            height,
-            SWP_NOACTIVATE,
+            0,
+            0,
+            SWP_NOACTIVATE | SWP_NOSIZE,
         )
         .map_err(|error| error.to_string())?;
     }

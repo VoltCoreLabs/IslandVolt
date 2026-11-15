@@ -66,6 +66,13 @@ API и библиотеки в таблице — кандидаты, не ок�
 
 ## Обязательные проверки этапа 0
 
+В прототипе размер передаётся в `GPUI Window::resize`, привязка к монитору выполняется
+отдельно без изменения размера. Фон рисуется по явным размерам оболочки. Для PopUp-окна
+отключён non-client rendering DWM; подсказки цвета рамки и системного скругления Windows 11
+необязательны, их отсутствие на Windows 10 не прерывает запуск.
+Smoke-проверка в видимом окне сверяет viewport после раскрытия/сворачивания в двух ширинах.
+Скрытый запуск не подходит для проверки: в нём GPUI не перерисовывает поверхность.
+
 - Чистая сборка и запуск минимального GPUI-окна на обеих целевых ОС.
 - Прозрачные углы, скругление, тень, hit-test и отсутствие невидимой области перехвата кликов.
 - Показ без кражи фокуса и раскрытие с намеренным фокусом клавиатуры.
@@ -87,3 +94,5 @@ API и библиотеки в таблице — кандидаты, не ок�
 - [Application Loopback sample и минимальная сборка](https://learn.microsoft.com/en-us/samples/microsoft/windows-classic-samples/applicationloopbackaudio-sample/)
 - [Windows Graphics Capture](https://learn.microsoft.com/en-us/windows/uwp/audio-video-camera/screen-capture)
 - [Windows.Media.Ocr и package identity](https://learn.microsoft.com/en-us/uwp/api/windows.media.ocr)
+- [Управление non-client rendering DWM](https://learn.microsoft.com/en-us/windows/win32/dwm/composition-ovw)
+- [Системное скругление окон](https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/ui/apply-rounded-corners)

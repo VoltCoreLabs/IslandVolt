@@ -1,7 +1,7 @@
 //! GPU-tessellated notch, open against the screen's top edge.
 use gpui::{Bounds, IntoElement, PathBuilder, Pixels, canvas, point, prelude::*, px, rgb};
 
-pub fn background() -> impl IntoElement {
+pub fn background(width: f32, height: f32) -> impl IntoElement {
     canvas(
         |_, _, _| {},
         |bounds, _, window, _| {
@@ -20,7 +20,8 @@ pub fn background() -> impl IntoElement {
         },
     )
     .absolute()
-    .size_full()
+    .w(px(width))
+    .h(px(height))
 }
 
 fn contour(builder: &mut PathBuilder, bounds: Bounds<Pixels>) {
@@ -29,21 +30,19 @@ fn contour(builder: &mut PathBuilder, bounds: Bounds<Pixels>) {
     let r = 25.0_f32.min(h / 2.0);
     let p = |x, y| bounds.origin + point(px(x), px(y));
     builder.move_to(p(0.0, 0.0));
-    // Concave shoulder, then a generous convex bottom corner.
+    let bottom = 18.0_f32.min((h - r) / 2.0);
+    let tangent = bottom * (1.0 - 0.552_284_8);
+    // Concave top shoulder, vertical side, and a quarter-circle bottom corner.
     builder.cubic_bezier_to(p(r, r), p(r, 0.0), p(r, r * 0.45));
-    builder.cubic_bezier_to(p(r * 2.0, h - 5.0), p(r, h - 9.0), p(r * 1.15, h - 5.0));
-    // A restrained liquid edge, not a fabricated audio waveform.
+    builder.line_to(p(r, h - bottom));
+    builder.cubic_bezier_to(p(r + bottom, h), p(r, h - tangent), p(r + tangent, h));
+    builder.line_to(p(w - r - bottom, h));
     builder.cubic_bezier_to(
-        p(w * 0.5, h - 4.0),
-        p(w * 0.30, h - 10.0),
-        p(w * 0.33, h - 1.0),
+        p(w - r, h - bottom),
+        p(w - r - tangent, h),
+        p(w - r, h - tangent),
     );
-    builder.cubic_bezier_to(
-        p(w - r * 2.0, h - 5.0),
-        p(w * 0.67, h - 7.0),
-        p(w * 0.70, h - 1.0),
-    );
-    builder.cubic_bezier_to(p(w - r, r), p(w - r * 1.15, h - 5.0), p(w - r, h - 9.0));
+    builder.line_to(p(w - r, r));
     builder.cubic_bezier_to(p(w, 0.0), p(w - r, r * 0.45), p(w - r, 0.0));
 }
 
