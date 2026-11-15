@@ -8,6 +8,7 @@ use islandvolt_platform_windows::tray::{Tray, TrayAction};
 use islandvolt_platform_windows::volume::{self, VolumeMonitor, VolumeState};
 
 pub struct Island {
+    pub(crate) hover: crate::hover::Hover,
     hidden: bool,
     _tray: Option<Tray>,
     _tray_task: Option<Task<()>>,
@@ -36,7 +37,7 @@ impl Island {
         window: &Window,
         cx: &mut Context<Self>,
         settings: crate::settings::Settings,
-        wide: bool,
+        preferences: crate::settings::Preferences,
     ) -> Self {
         let executor = cx.background_executor().clone();
         let clock = cx.spawn(async move |this, cx| {
@@ -108,6 +109,9 @@ impl Island {
                                         if !visible {
                                             island.expanded = false;
                                             island.transition.set(false);
+                                        } else if island.pinned {
+                                            island.expanded = true;
+                                            island.transition.set(true);
                                         }
                                         cx.notify();
                                     }
@@ -126,18 +130,24 @@ impl Island {
                 (None, None)
             }
         };
+        let mut transition = Transition::new(islandvolt_platform_windows::animations_enabled());
+        transition.set(preferences.pinned);
         Self {
+            hover: crate::hover::Hover {
+                inside: false,
+                pending: None,
+            },
             hidden: false,
             _tray: tray,
             _tray_task: tray_task,
-            pinned: false,
+            pinned: preferences.pinned,
             focus: cx.focus_handle(),
             settings,
-            expanded: false,
-            wide,
+            expanded: preferences.pinned,
+            wide: preferences.wide,
             dragging_volume: false,
             last_volume_command: None,
-            transition: Transition::new(islandvolt_platform_windows::animations_enabled()),
+            transition,
             last_size: None,
             volume: None,
             volume_error: None,
@@ -156,9 +166,7 @@ impl Render for Island {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let progress = self.transition.value();
         let active = self.transition.active();
-        let expanded_width = if self.wide { 540.0 } else { 460.0 };
-        let width = 400.0 + (expanded_width - 400.0) * progress;
-        let height = 76.0 + 144.0 * progress;
+        let (width, height) = crate::layout::dimensions(self.wide, progress);
         let scale = window.scale_factor();
         let physical = (
             (width * scale).round() as i32,
@@ -198,6 +206,7 @@ impl Render for Island {
                 let handled = match event.keystroke.key.as_str() {
                     "escape" => {
                         this.pinned = false;
+                        this.settings.save_pinned(false);
                         this.expanded = false;
                         this.transition.set(false);
                         true
@@ -247,11 +256,7 @@ impl Render for Island {
                 if this.hidden {
                     return;
                 }
-                if *hovered || (!this.dragging_volume && !this.pinned) {
-                    this.expanded = *hovered;
-                    this.transition.set(*hovered);
-                    cx.notify();
-                }
+                this.hover_changed(*hovered, cx);
             }))
             .child(content)
     }

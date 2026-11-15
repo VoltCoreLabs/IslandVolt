@@ -1,6 +1,8 @@
 mod assets;
 mod compact;
+mod hover;
 mod island;
+mod layout;
 mod panel;
 mod settings;
 mod transition;
@@ -14,7 +16,7 @@ use island::Island;
 
 fn main() {
     let smoke_test = std::env::args().any(|argument| argument == "--smoke-test");
-    let (settings, wide, shutdown) = settings::Settings::open();
+    let (settings, preferences, shutdown) = settings::Settings::open();
     Application::new()
         .with_assets(assets::Icons)
         .run(move |cx: &mut App| {
@@ -26,7 +28,10 @@ fn main() {
             {
                 eprintln!("Не удалось загрузить Golos Text: {error}");
             }
-            let size = size(px(400.0), px(76.0));
+            let size = size(
+                px(crate::layout::dimensions(preferences.wide, 0.0).0),
+                px(76.0),
+            );
             let mut bounds = Bounds::centered(None, size, cx);
             if let Some(display) = cx.primary_display() {
                 bounds.origin = point(bounds.origin.x, display.bounds().origin.y);
@@ -48,7 +53,7 @@ fn main() {
                         cx.quit();
                         true
                     });
-                    cx.new(|cx| Island::new(window, cx, settings, wide))
+                    cx.new(|cx| Island::new(window, cx, settings, preferences))
                 },
             ) {
                 eprintln!("Не удалось открыть окно IslandVolt: {error}");
