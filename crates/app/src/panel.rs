@@ -35,6 +35,8 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
         .size_full()
         .flex()
         .flex_col()
+        .items_center()
+        .gap(px(6.0))
         .px(px(32.0))
         .pt(px(15.0))
         .on_mouse_move(cx.listener(|this, event: &gpui::MouseMoveEvent, _, cx| {
@@ -71,6 +73,7 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
                 .flex()
                 .items_center()
                 .justify_between()
+                .gap(px(16.0))
                 .child(
                     div()
                         .flex()
@@ -216,6 +219,7 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
                         })
                         .on_click(cx.listener(|this, _, _, cx| {
                             this.pinned = !this.pinned;
+                            this.settings.save_pinned(this.pinned);
                             cx.notify();
                         })),
                 )

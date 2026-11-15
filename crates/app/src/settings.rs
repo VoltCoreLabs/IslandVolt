@@ -2,19 +2,22 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-#[derive(Default, Serialize, Deserialize)]
-struct Preferences {
+#[derive(Clone, Copy, Default, Serialize, Deserialize)]
+pub(crate) struct Preferences {
     #[serde(default)]
-    wide: bool,
+    pub wide: bool,
+    #[serde(default)]
+    pub pinned: bool,
 }
 
 pub struct Settings {
-    sender: async_channel::Sender<bool>,
+    sender: async_channel::Sender<Preferences>,
+    current: std::sync::Mutex<Preferences>,
 }
 
 /// Flushed after the UI event loop has returned, without blocking the UI thread.
 pub struct Shutdown {
-    sender: async_channel::Sender<bool>,
+    sender: async_channel::Sender<Preferences>,
     worker: std::thread::JoinHandle<()>,
 }
 
@@ -28,28 +31,27 @@ impl Shutdown {
 }
 
 impl Settings {
-    pub fn open() -> (Self, bool, Shutdown) {
+    pub fn open() -> (Self, Preferences, Shutdown) {
         let path = std::env::var_os("APPDATA")
             .map(PathBuf::from)
             .map(|root| root.join("IslandVolt").join("settings.json"));
         Self::start(path)
     }
 
-    fn start(path: Option<PathBuf>) -> (Self, bool, Shutdown) {
-        let wide = path
+    fn start(path: Option<PathBuf>) -> (Self, Preferences, Shutdown) {
+        let preferences = path
             .as_ref()
             .and_then(|path| std::fs::read(path).ok())
             .and_then(|bytes| serde_json::from_slice::<Preferences>(&bytes).ok())
-            .unwrap_or_default()
-            .wide;
+            .unwrap_or_default();
         let (sender, receiver) = async_channel::bounded(1);
         let worker = std::thread::spawn(move || {
-            while let Ok(wide) = receiver.recv_blocking() {
+            while let Ok(preferences) = receiver.recv_blocking() {
                 let Some(path) = path.as_ref() else {
                     eprintln!("Настройки не сохранены: папка AppData недоступна");
                     continue;
                 };
-                if let Err(error) = write(path, wide) {
+                if let Err(error) = write(path, preferences) {
                     eprintln!("Не удалось сохранить настройки: {error}");
                 }
             }
@@ -58,12 +60,28 @@ impl Settings {
             sender: sender.clone(),
             worker,
         };
-        (Self { sender }, wide, shutdown)
+        (
+            Self {
+                sender,
+                current: std::sync::Mutex::new(preferences),
+            },
+            preferences,
+            shutdown,
+        )
     }
 
     pub fn save_width(&self, wide: bool) {
-        // Only the latest preference matters while an older value is being saved.
-        let _ = self.sender.force_send(wide);
+        if let Ok(mut preferences) = self.current.lock() {
+            preferences.wide = wide;
+            let _ = self.sender.force_send(*preferences);
+        }
+    }
+
+    pub fn save_pinned(&self, pinned: bool) {
+        if let Ok(mut preferences) = self.current.lock() {
+            preferences.pinned = pinned;
+            let _ = self.sender.force_send(*preferences);
+        }
     }
 }
 
@@ -73,15 +91,12 @@ impl Drop for Settings {
     }
 }
 
-fn write(path: &std::path::Path, wide: bool) -> anyhow::Result<()> {
+fn write(path: &std::path::Path, preferences: Preferences) -> anyhow::Result<()> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }
     let temporary = path.with_extension("json.tmp");
-    std::fs::write(
-        &temporary,
-        serde_json::to_vec_pretty(&Preferences { wide })?,
-    )?;
+    std::fs::write(&temporary, serde_json::to_vec_pretty(&preferences)?)?;
     std::fs::rename(temporary, path)?;
     Ok(())
 }
@@ -97,10 +112,12 @@ mod tests {
         let (settings, _, shutdown) = Settings::start(Some(path.clone()));
         settings.save_width(false);
         settings.save_width(true);
+        settings.save_pinned(true);
         shutdown.finish();
         let saved: Preferences =
             serde_json::from_slice(&std::fs::read(&path).expect("saved settings")).expect("parse");
         assert!(saved.wide);
+        assert!(saved.pinned);
         std::fs::remove_file(path).expect("remove test file");
         std::fs::remove_dir(folder).expect("remove test folder");
     }
@@ -109,8 +126,15 @@ mod tests {
         let folder =
             std::env::temp_dir().join(format!("islandvolt-settings-{}", std::process::id()));
         let path = folder.join("settings.json");
-        write(&path, true).expect("save");
-        write(&path, false).expect("replace");
+        write(
+            &path,
+            Preferences {
+                wide: true,
+                ..Default::default()
+            },
+        )
+        .expect("save");
+        write(&path, Preferences::default()).expect("replace");
         let preferences: Preferences =
             serde_json::from_slice(&std::fs::read(&path).expect("read")).expect("parse");
         assert!(!preferences.wide);

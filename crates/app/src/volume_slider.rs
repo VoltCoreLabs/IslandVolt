@@ -3,7 +3,6 @@ use gpui::{Context, IntoElement, MouseButton, Pixels, div, prelude::*, px, rgb};
 use islandvolt_platform_windows::volume::Action;
 use std::time::{Duration, Instant};
 
-const LEFT: f32 = 32.0;
 const WIDTH: f32 = 300.0;
 
 pub fn set_volume(island: &mut Island, x: Pixels, final_value: bool, cx: &mut Context<Island>) {
@@ -21,14 +20,15 @@ pub fn set_volume(island: &mut Island, x: Pixels, final_value: bool, cx: &mut Co
     island.last_volume_command = Some(now);
     island.volume_error = island
         .volume_monitor
-        .control(Action::Set(slider_percent(f32::from(x))))
+        .control(Action::Set(slider_percent(f32::from(x), island.wide)))
         .err()
         .map(str::to_string);
     cx.notify();
 }
 
-fn slider_percent(x: f32) -> u8 {
-    (((x - LEFT) / WIDTH).clamp(0.0, 1.0) * 100.0).round() as u8
+fn slider_percent(x: f32, wide: bool) -> u8 {
+    let left = (crate::layout::dimensions(wide, 1.0).0 - WIDTH) / 2.0;
+    (((x - left) / WIDTH).clamp(0.0, 1.0) * 100.0).round() as u8
 }
 
 pub fn render(percent: u8, enabled: bool, cx: &mut Context<Island>) -> impl IntoElement {
@@ -80,8 +80,11 @@ mod tests {
     use super::*;
     #[test]
     fn slider_clamps_and_maps_position() {
-        assert_eq!(slider_percent(0.0), 0);
-        assert_eq!(slider_percent(LEFT + WIDTH / 2.0), 50);
-        assert_eq!(slider_percent(999.0), 100);
+        for wide in [false, true] {
+            let center = crate::layout::dimensions(wide, 1.0).0 / 2.0;
+            assert_eq!(slider_percent(0.0, wide), 0);
+            assert_eq!(slider_percent(center, wide), 50);
+            assert_eq!(slider_percent(999.0, wide), 100);
+        }
     }
 }
