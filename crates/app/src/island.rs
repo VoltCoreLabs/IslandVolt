@@ -2,11 +2,13 @@ use std::time::Duration;
 
 use crate::transition::Transition;
 use chrono::{Local, Timelike};
-use gpui::{Context, IntoElement, Render, Task, Window, div, prelude::*, px, rgb};
+use gpui::{Context, IntoElement, Render, Task, Window, div, prelude::*, rgb};
 use islandvolt_platform_windows::media::{self, MediaMonitor, Track};
 use islandvolt_platform_windows::volume::{self, VolumeMonitor, VolumeState};
 
 pub struct Island {
+    pub(crate) pinned: bool,
+    focus: gpui::FocusHandle,
     pub(crate) settings: crate::settings::Settings,
     pub(crate) expanded: bool,
     pub(crate) wide: bool,
@@ -80,6 +82,8 @@ impl Island {
             }
         });
         Self {
+            pinned: false,
+            focus: cx.focus_handle(),
             settings,
             expanded: false,
             wide,
@@ -133,11 +137,66 @@ impl Render for Island {
         div()
             .id("island-shell")
             .size_full()
-            .rounded_b(px(32.0))
             .overflow_hidden()
+            .font_family("Golos Text")
+            .track_focus(&self.focus)
             .bg(rgb(0x08080b))
+            .on_mouse_down(
+                gpui::MouseButton::Left,
+                cx.listener(|this, _, window, _| window.focus(&this.focus)),
+            )
+            .on_key_down(cx.listener(|this, event: &gpui::KeyDownEvent, _, cx| {
+                use islandvolt_platform_windows::volume::Action;
+                let handled = match event.keystroke.key.as_str() {
+                    "escape" => {
+                        this.pinned = false;
+                        this.expanded = false;
+                        this.transition.set(false);
+                        true
+                    }
+                    "left" => {
+                        this.volume_error = this
+                            .volume_monitor
+                            .control(Action::Decrease)
+                            .err()
+                            .map(str::to_string);
+                        true
+                    }
+                    "right" => {
+                        this.volume_error = this
+                            .volume_monitor
+                            .control(Action::Increase)
+                            .err()
+                            .map(str::to_string);
+                        true
+                    }
+                    "m" => {
+                        this.volume_error = this
+                            .volume_monitor
+                            .control(Action::ToggleMute)
+                            .err()
+                            .map(str::to_string);
+                        true
+                    }
+                    "space" => {
+                        if let Some(track) = &this.track {
+                            this.media_error = this
+                                .media_monitor
+                                .toggle(track.session_id)
+                                .err()
+                                .map(str::to_string);
+                        }
+                        true
+                    }
+                    _ => false,
+                };
+                if handled {
+                    cx.stop_propagation();
+                    cx.notify();
+                }
+            }))
             .on_hover(cx.listener(|this, hovered, _, cx| {
-                if *hovered || !this.dragging_volume {
+                if *hovered || (!this.dragging_volume && !this.pinned) {
                     this.expanded = *hovered;
                     this.transition.set(*hovered);
                     cx.notify();

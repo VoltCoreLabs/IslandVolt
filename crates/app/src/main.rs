@@ -17,6 +17,14 @@ fn main() {
     Application::new()
         .with_assets(assets::Icons)
         .run(move |cx: &mut App| {
+            if let Err(error) =
+                cx.text_system()
+                    .add_fonts(vec![std::borrow::Cow::Borrowed(include_bytes!(
+                        "../../../assets/fonts/golos/GolosText.ttf"
+                    ))])
+            {
+                eprintln!("Не удалось загрузить Golos Text: {error}");
+            }
             let size = size(px(400.0), px(76.0));
             let mut bounds = Bounds::centered(None, size, cx);
             if let Some(display) = cx.primary_display() {
@@ -26,7 +34,7 @@ fn main() {
                 WindowOptions {
                     window_bounds: Some(WindowBounds::Windowed(bounds)),
                     titlebar: None,
-                    window_background: WindowBackgroundAppearance::Transparent,
+                    window_background: WindowBackgroundAppearance::Opaque,
                     is_resizable: false,
                     focus: false,
                     ..Default::default()
