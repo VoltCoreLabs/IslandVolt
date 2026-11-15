@@ -1,6 +1,7 @@
 //! Windows window integration for the island prototype.
 
 pub mod media;
+pub mod shortcut;
 pub mod tray;
 pub mod volume;
 

@@ -64,7 +64,7 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
             cx.listener(|this, event: &gpui::MouseUpEvent, _, cx| {
                 if this.dragging_volume {
                     crate::volume_slider::set_volume(this, event.position.x, true, cx);
-                    if !this.pinned {
+                    if !this.pinned && !this.keyboard.open {
                         this.expanded = false;
                         this.transition.set(false);
                     }
@@ -241,5 +241,12 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
                         .child("← → звук · M mute · Esc свернуть"),
                 ),
         )
+        .child(div().text_size(px(10.0)).text_color(rgb(0x999ba9)).child(
+            if island.keyboard.unavailable {
+                "Ctrl+Alt+Space недоступна · используйте наведение или трей"
+            } else {
+                "Ctrl+Alt+Space · открыть / свернуть"
+            },
+        ))
         .into_any_element()
 }

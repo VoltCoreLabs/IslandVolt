@@ -10,37 +10,6 @@ pub struct Transition {
     started: Instant,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn reversal_preserves_current_size() {
-        let mut transition = Transition {
-            enabled: true,
-            from: 0.0,
-            to: 1.0,
-            started: Instant::now() - Duration::from_millis(90),
-        };
-        let before = transition.value();
-        transition.set(false);
-        assert!((transition.value() - before).abs() < 0.02);
-        assert!(transition.active());
-    }
-
-    #[test]
-    fn completed_transition_stops_requesting_frames() {
-        let transition = Transition {
-            enabled: true,
-            from: 0.0,
-            to: 1.0,
-            started: Instant::now() - DURATION,
-        };
-        assert_eq!(transition.value(), 1.0);
-        assert!(!transition.active());
-    }
-}
-
 impl Transition {
     pub fn new(enabled: bool) -> Self {
         Self {
@@ -73,5 +42,36 @@ impl Transition {
 
     pub fn active(&self) -> bool {
         (self.value() - self.to).abs() > 0.001
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn reversal_preserves_current_size() {
+        let mut transition = Transition {
+            enabled: true,
+            from: 0.0,
+            to: 1.0,
+            started: Instant::now() - Duration::from_millis(90),
+        };
+        let before = transition.value();
+        transition.set(false);
+        assert!((transition.value() - before).abs() < 0.02);
+        assert!(transition.active());
+    }
+
+    #[test]
+    fn completed_transition_stops_requesting_frames() {
+        let transition = Transition {
+            enabled: true,
+            from: 0.0,
+            to: 1.0,
+            started: Instant::now() - DURATION,
+        };
+        assert_eq!(transition.value(), 1.0);
+        assert!(!transition.active());
     }
 }
