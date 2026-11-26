@@ -1,6 +1,7 @@
 mod assets;
 mod compact;
 mod hover;
+mod input_indicator;
 mod island;
 mod keyboard;
 mod layout;

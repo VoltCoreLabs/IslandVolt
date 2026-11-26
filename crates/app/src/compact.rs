@@ -48,9 +48,17 @@ impl Island {
             )
             .child(
                 div()
-                    .text_sm()
-                    .text_color(palette.secondary)
-                    .child(Local::now().format("%H:%M").to_string()),
+                    .flex()
+                    .flex_shrink_0()
+                    .items_center()
+                    .gap(px(8.0))
+                    .child(self.input_indicator.render(palette))
+                    .child(
+                        div()
+                            .text_sm()
+                            .text_color(palette.secondary)
+                            .child(Local::now().format("%H:%M").to_string()),
+                    ),
             )
             .into_any_element()
     }
