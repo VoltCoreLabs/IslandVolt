@@ -77,7 +77,7 @@ impl Drop for LanguageMonitor {
     }
 }
 
-/// Observe changes without polling, with one coalesced update buffered for GPUI.
+/// Observe shell events with a 100 ms fallback for missed input-language notifications.
 pub fn watch() -> (
     LanguageMonitor,
     async_channel::Receiver<Result<Option<InputLanguage>, String>>,

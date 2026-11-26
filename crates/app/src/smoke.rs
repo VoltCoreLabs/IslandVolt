@@ -78,6 +78,9 @@ pub fn check_layout(handle: WindowHandle<Island>, cx: &mut App) {
         match handle.update(cx, |island, _, cx| {
             let ready = island.mixer.as_ref().is_some_and(|mixer| mixer.ready());
             let handled = island.mixer_key("escape", cx);
+            island.show_launcher = true;
+            island.sync_pet(cx);
+            cx.notify();
             if !island.input_indicator.received {
                 eprintln!("Smoke: не получен статус языка ввода");
             }
@@ -85,6 +88,12 @@ pub fn check_layout(handle: WindowHandle<Island>, cx: &mut App) {
         }) {
             Ok(true) => println!("Smoke: панель микшера получила снимок и закрылась по Esc"),
             _ => eprintln!("Smoke: микшер не получил снимок или не закрылся"),
+        }
+        executor.timer(Duration::from_millis(150)).await;
+        if !matches!(handle.update(cx, |island, _, cx| {
+            island.launcher_key("escape", cx) && !island.show_launcher
+        }), Ok(true)) {
+            eprintln!("Smoke: не удалось закрыть панель приложений");
         }
     })
     .detach();

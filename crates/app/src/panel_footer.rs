@@ -66,12 +66,26 @@ pub fn render(island: &Island, palette: Palette, cx: &mut Context<Island>) -> im
         )
         .child(
             div()
+                .flex()
+                .items_center()
+                .gap(px(12.0))
                 .text_size(px(10.0))
                 .text_color(palette.secondary)
                 .child(if island.keyboard.unavailable {
                     "Горячая клавиша недоступна"
                 } else {
                     "Ctrl+Alt+Space · открыть / свернуть"
-                }),
+                })
+                .child(
+                    div()
+                        .id("open-launcher")
+                        .cursor_pointer()
+                        .child("Приложения")
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            this.show_launcher = true;
+                            this.sync_pet(cx);
+                            cx.notify();
+                        })),
+                ),
         )
 }

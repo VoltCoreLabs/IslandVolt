@@ -59,9 +59,9 @@ impl InputIndicator {
     pub fn render(&self, palette: Palette) -> impl IntoElement {
         div()
             .id("input-language")
-            .min_w(px(32.0))
-            .px(px(6.0))
-            .py(px(3.0))
+            .flex_shrink_0()
+            .px(px(3.0))
+            .py(px(2.0))
             .rounded_full()
             .bg(if self.highlighted {
                 palette.selected

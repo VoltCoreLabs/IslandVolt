@@ -9,6 +9,8 @@ use islandvolt_platform_windows::tray::Tray;
 use islandvolt_platform_windows::volume::{self, VolumeMonitor, VolumeState};
 
 pub struct Island {
+    pub(crate) launcher: crate::launcher_panel::LauncherPanel,
+    pub(crate) show_launcher: bool,
     pub(crate) input_indicator: crate::input_indicator::InputIndicator,
     pub(crate) theme: ThemeMode,
     _appearance: gpui::Subscription,
@@ -133,6 +135,8 @@ impl Island {
         let mut transition = Transition::new(islandvolt_platform_windows::animations_enabled());
         transition.set(preferences.pinned);
         Self {
+            launcher: crate::launcher_panel::LauncherPanel::new(preferences.launcher_apps),
+            show_launcher: false,
             input_indicator: crate::input_indicator::InputIndicator::new(cx),
             theme: preferences.theme,
             _appearance: appearance,

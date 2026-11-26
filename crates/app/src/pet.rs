@@ -110,8 +110,11 @@ impl Render for Pet {
 
 impl crate::island::Island {
     pub(crate) fn sync_pet(&self, cx: &mut Context<Self>) {
-        let visible =
-            !self.hidden && !self.pet_hidden && !self.show_sources && self.mixer.is_none();
+        let visible = !self.hidden
+            && !self.pet_hidden
+            && !self.show_sources
+            && self.mixer.is_none()
+            && !self.show_launcher;
         self.pet.update(cx, |pet, cx| pet.set_visible(visible, cx));
     }
 }
