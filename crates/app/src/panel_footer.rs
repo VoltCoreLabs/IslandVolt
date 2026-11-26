@@ -1,7 +1,8 @@
 use crate::island::Island;
-use gpui::{Context, IntoElement, div, prelude::*, px, rgb};
+use crate::theme::Palette;
+use gpui::{Context, IntoElement, div, prelude::*, px};
 
-pub fn render(island: &Island, cx: &mut Context<Island>) -> impl IntoElement {
+pub fn render(island: &Island, palette: Palette, cx: &mut Context<Island>) -> impl IntoElement {
     div()
         .flex()
         .flex_col()
@@ -13,7 +14,7 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> impl IntoElement {
                 .flex()
                 .gap(px(12.0))
                 .text_xs()
-                .text_color(rgb(0xc8c9d4))
+                .text_color(palette.text)
                 .child(
                     div()
                         .id("pin-panel")
@@ -60,14 +61,17 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> impl IntoElement {
         .child(
             div()
                 .text_size(px(10.0))
-                .text_color(rgb(0x858793))
-                .child("← → звук · M mute · P питомец · Esc свернуть"),
+                .text_color(palette.secondary)
+                .child("← → звук · M mute · P питомец · T тема · Esc свернуть"),
         )
-        .child(div().text_size(px(10.0)).text_color(rgb(0x999ba9)).child(
-            if island.keyboard.unavailable {
-                "Ctrl+Alt+Space недоступна · используйте наведение или трей"
-            } else {
-                "Ctrl+Alt+Space · открыть / свернуть"
-            },
-        ))
+        .child(
+            div()
+                .text_size(px(10.0))
+                .text_color(palette.secondary)
+                .child(if island.keyboard.unavailable {
+                    "Горячая клавиша недоступна"
+                } else {
+                    "Ctrl+Alt+Space · открыть / свернуть"
+                }),
+        )
 }

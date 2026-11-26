@@ -1,7 +1,8 @@
 use crate::island::Island;
-use gpui::{AnyElement, Context, IntoElement, div, prelude::*, px, rgb};
+use crate::theme::Palette;
+use gpui::{AnyElement, Context, IntoElement, div, prelude::*, px};
 
-pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
+pub fn render(island: &Island, palette: Palette, cx: &mut Context<Island>) -> AnyElement {
     div()
         .size_full()
         .flex()
@@ -13,7 +14,7 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
             div()
                 .id("sources-back")
                 .text_sm()
-                .text_color(rgb(0xededf2))
+                .text_color(palette.text)
                 .child("Назад к управлению")
                 .on_click(cx.listener(|this, _, _, cx| {
                     this.show_sources = false;
@@ -24,7 +25,7 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
         .child(
             div()
                 .text_xs()
-                .text_color(rgb(0x999ba9))
+                .text_color(palette.secondary)
                 .child("Выберите медиаплеер"),
         )
         .child(
@@ -36,6 +37,7 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
                     None,
                     "Автоматически (Windows)".into(),
                     island.selected_source.is_none(),
+                    palette,
                     cx,
                 ))
                 .children(island.sources.iter().map(|source| {
@@ -43,6 +45,7 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
                         Some(source.id),
                         source.name.clone(),
                         island.selected_source == Some(source.id),
+                        palette,
                         cx,
                     )
                 })),
@@ -51,26 +54,32 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
             view.child(
                 div()
                     .text_xs()
-                    .text_color(rgb(0x999ba9))
+                    .text_color(palette.secondary)
                     .child("Запустите воспроизведение в плеере"),
             )
         })
         .into_any_element()
 }
 
-fn option(id: Option<u64>, name: String, selected: bool, cx: &mut Context<Island>) -> AnyElement {
+fn option(
+    id: Option<u64>,
+    name: String,
+    selected: bool,
+    palette: Palette,
+    cx: &mut Context<Island>,
+) -> AnyElement {
     div()
         .id(("source", id.unwrap_or(0)))
         .px(px(12.0))
         .py(px(8.0))
         .rounded_md()
         .bg(if selected {
-            rgb(0x30283b)
+            palette.selected
         } else {
-            rgb(0x15151a)
+            palette.surface
         })
         .text_sm()
-        .text_color(rgb(0xededf2))
+        .text_color(palette.text)
         .truncate()
         .child(name)
         .on_click(cx.listener(move |this, _, _, cx| {

@@ -1,5 +1,6 @@
 use crate::island::Island;
-use gpui::{Context, IntoElement, MouseButton, Pixels, div, prelude::*, px, rgb};
+use crate::theme::Palette;
+use gpui::{Context, IntoElement, MouseButton, Pixels, div, prelude::*, px};
 use islandvolt_platform_windows::volume::Action;
 use std::time::{Duration, Instant};
 
@@ -31,7 +32,12 @@ pub(crate) fn slider_percent(x: f32, wide: bool) -> u8 {
     (((x - left) / WIDTH).clamp(0.0, 1.0) * 100.0).round() as u8
 }
 
-pub fn render(percent: u8, enabled: bool, cx: &mut Context<Island>) -> impl IntoElement {
+pub fn render(
+    percent: u8,
+    enabled: bool,
+    palette: Palette,
+    cx: &mut Context<Island>,
+) -> impl IntoElement {
     div()
         .id("volume-slider")
         .w(px(WIDTH))
@@ -47,22 +53,22 @@ pub fn render(percent: u8, enabled: bool, cx: &mut Context<Island>) -> impl Into
                 }),
             )
         })
-        .child(track(percent))
+        .child(track(percent, palette))
 }
 
-pub(crate) fn track(percent: u8) -> impl IntoElement {
+pub(crate) fn track(percent: u8, palette: Palette) -> impl IntoElement {
     div()
         .relative()
         .w_full()
         .h(px(6.0))
         .rounded_full()
-        .bg(rgb(0x373943))
+        .bg(palette.slider_track)
         .child(
             div()
                 .w(px(WIDTH * f32::from(percent) / 100.0))
                 .h_full()
                 .rounded_full()
-                .bg(rgb(0xa79aff)),
+                .bg(palette.accent),
         )
         .child(
             div()
@@ -73,7 +79,7 @@ pub(crate) fn track(percent: u8) -> impl IntoElement {
                 .top(px(-3.0))
                 .size(px(12.0))
                 .rounded_full()
-                .bg(rgb(0xededf2)),
+                .bg(palette.slider_thumb),
         )
 }
 

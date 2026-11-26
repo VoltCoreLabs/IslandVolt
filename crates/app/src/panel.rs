@@ -1,28 +1,17 @@
+use crate::theme::Palette;
 use crate::{compact::media_button, island::Island};
-use gpui::{AnyElement, Context, IntoElement, MouseButton, div, prelude::*, px, rgb, svg};
+use gpui::{AnyElement, Context, IntoElement, MouseButton, div, prelude::*, px, svg};
 use islandvolt_platform_windows::{media::MediaAction, volume::Action};
 
-pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
+pub fn render(island: &Island, palette: Palette, cx: &mut Context<Island>) -> AnyElement {
     if let Some(mixer) = &island.mixer {
-        return mixer.render(cx);
+        return mixer.render(palette, cx);
     }
     if island.show_sources {
-        return crate::source_picker::render(island, cx);
+        return crate::source_picker::render(island, palette, cx);
     }
     let track = island.track.as_ref();
     let id = track.map_or(0, |track| track.session_id);
-    let title = island.media_error.clone().unwrap_or_else(|| {
-        track
-            .map(|track| track.title.as_str())
-            .filter(|title| !title.trim().is_empty())
-            .unwrap_or("Нет воспроизведения")
-            .to_owned()
-    });
-    let artist = track
-        .map(|track| track.artist.as_str())
-        .filter(|artist| !artist.trim().is_empty())
-        .unwrap_or("Выберите музыку в плеере")
-        .to_owned();
     let percent = island.volume.map_or(0, |volume| volume.percent);
     let muted = island.volume.is_some_and(|volume| volume.muted);
     let enabled = island.volume.is_some();
@@ -33,11 +22,6 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
             "Нет звука".into()
         }
     });
-    let width_label = if island.wide {
-        "Меньше"
-    } else {
-        "Больше"
-    };
     div()
         .id("expanded-panel")
         .size_full()
@@ -76,54 +60,7 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
                 cx.notify();
             }),
         )
-        .child(
-            div()
-                .flex()
-                .items_center()
-                .justify_between()
-                .gap(px(16.0))
-                .child(crate::track_artwork::thumbnail(
-                    island.track_artwork.as_ref(),
-                    40.0,
-                ))
-                .child(
-                    div()
-                        .flex()
-                        .flex_col()
-                        .min_w_0()
-                        .max_w(px(240.0))
-                        .child(
-                            div()
-                                .truncate()
-                                .text_sm()
-                                .text_color(rgb(0xf5f6fa))
-                                .child(title),
-                        )
-                        .child(
-                            div()
-                                .truncate()
-                                .text_xs()
-                                .text_color(rgb(0x999ba9))
-                                .child(artist),
-                        ),
-                )
-                .child(
-                    div()
-                        .id("size-preset")
-                        .px(px(10.0))
-                        .py(px(5.0))
-                        .rounded_full()
-                        .bg(rgb(0x282a35))
-                        .text_xs()
-                        .text_color(rgb(0xc8c9d4))
-                        .child(width_label)
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            this.wide = !this.wide;
-                            this.settings.save_width(this.wide);
-                            cx.notify();
-                        })),
-                ),
-        )
+        .child(crate::panel_header::render(island, palette, cx))
         .child(
             div()
                 .flex()
@@ -138,6 +75,7 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
                     track.is_some_and(|t| t.can_previous),
                     id,
                     MediaAction::Previous,
+                    palette,
                     cx,
                 ))
                 .child(media_button(
@@ -150,6 +88,7 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
                     track.is_some_and(|t| t.can_toggle),
                     id,
                     MediaAction::Toggle,
+                    palette,
                     cx,
                 ))
                 .child(media_button(
@@ -158,6 +97,7 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
                     track.is_some_and(|t| t.can_next),
                     id,
                     MediaAction::Next,
+                    palette,
                     cx,
                 )),
         )
@@ -191,31 +131,40 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
                                     "icons/speaker.svg"
                                 })
                                 .size(px(16.0))
-                                .text_color(rgb(0xc7c8d4)),
+                                .text_color(palette.secondary),
                         )
-                        .child(div().text_xs().text_color(rgb(0xb4b6c2)).child("Громкость")),
+                        .child(
+                            div()
+                                .text_xs()
+                                .text_color(palette.secondary)
+                                .child("Громкость"),
+                        ),
                 )
                 .child(
                     div()
                         .max_w(px(150.0))
                         .truncate()
                         .text_xs()
-                        .text_color(rgb(0xe2e3eb))
+                        .text_color(palette.text)
                         .child(label),
                 ),
         )
-        .child(crate::volume_slider::render(percent, enabled, cx))
-        .child(audio_navigation(island, cx))
-        .child(crate::panel_footer::render(island, cx))
+        .child(crate::volume_slider::render(percent, enabled, palette, cx))
+        .child(audio_navigation(island, palette, cx))
+        .child(crate::panel_footer::render(island, palette, cx))
         .into_any_element()
 }
 
-fn audio_navigation(island: &Island, cx: &mut Context<Island>) -> impl IntoElement {
+fn audio_navigation(
+    island: &Island,
+    palette: Palette,
+    cx: &mut Context<Island>,
+) -> impl IntoElement {
     div()
         .flex()
         .gap(px(18.0))
         .text_xs()
-        .text_color(rgb(0xb4b6c2))
+        .text_color(palette.secondary)
         .child(
             div()
                 .id("choose-source")

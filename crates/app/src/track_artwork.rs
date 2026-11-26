@@ -1,4 +1,5 @@
-use gpui::{IntoElement, RenderImage, div, img, prelude::*, px, rgb, svg};
+use crate::theme::Palette;
+use gpui::{IntoElement, RenderImage, div, img, prelude::*, px, svg};
 use islandvolt_platform_windows::media::Artwork;
 use std::sync::Arc;
 
@@ -12,7 +13,11 @@ pub fn prepare(artwork: &Artwork) -> Option<Arc<RenderImage>> {
     Some(Arc::new(RenderImage::new(frames)))
 }
 
-pub fn thumbnail(artwork: Option<&Arc<RenderImage>>, side: f32) -> impl IntoElement {
+pub fn thumbnail(
+    artwork: Option<&Arc<RenderImage>>,
+    side: f32,
+    palette: Palette,
+) -> impl IntoElement {
     div()
         .size(px(side))
         .flex_shrink_0()
@@ -21,14 +26,14 @@ pub fn thumbnail(artwork: Option<&Arc<RenderImage>>, side: f32) -> impl IntoElem
         .flex()
         .items_center()
         .justify_center()
-        .bg(rgb(0x262330))
+        .bg(palette.surface)
         .map(|thumbnail| match artwork {
             Some(image) => thumbnail.child(img(image.clone()).size_full()),
             None => thumbnail.child(
                 svg()
                     .path("icons/waveform.svg")
                     .size(px(side * 0.5))
-                    .text_color(rgb(0xb49acf)),
+                    .text_color(palette.accent),
             ),
         })
 }
