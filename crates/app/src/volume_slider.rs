@@ -3,7 +3,7 @@ use gpui::{Context, IntoElement, MouseButton, Pixels, div, prelude::*, px, rgb};
 use islandvolt_platform_windows::volume::Action;
 use std::time::{Duration, Instant};
 
-const WIDTH: f32 = 300.0;
+pub(crate) const WIDTH: f32 = 300.0;
 
 pub fn set_volume(island: &mut Island, x: Pixels, final_value: bool, cx: &mut Context<Island>) {
     if island.volume.is_none() {
@@ -26,7 +26,7 @@ pub fn set_volume(island: &mut Island, x: Pixels, final_value: bool, cx: &mut Co
     cx.notify();
 }
 
-fn slider_percent(x: f32, wide: bool) -> u8 {
+pub(crate) fn slider_percent(x: f32, wide: bool) -> u8 {
     let left = (crate::layout::dimensions(wide, 1.0).0 - WIDTH) / 2.0;
     (((x - left) / WIDTH).clamp(0.0, 1.0) * 100.0).round() as u8
 }
@@ -47,31 +47,33 @@ pub fn render(percent: u8, enabled: bool, cx: &mut Context<Island>) -> impl Into
                 }),
             )
         })
+        .child(track(percent))
+}
+
+pub(crate) fn track(percent: u8) -> impl IntoElement {
+    div()
+        .relative()
+        .w_full()
+        .h(px(6.0))
+        .rounded_full()
+        .bg(rgb(0x373943))
         .child(
             div()
-                .relative()
-                .w_full()
-                .h(px(6.0))
+                .w(px(WIDTH * f32::from(percent) / 100.0))
+                .h_full()
                 .rounded_full()
-                .bg(rgb(0x373943))
-                .child(
-                    div()
-                        .w(px(WIDTH * f32::from(percent) / 100.0))
-                        .h_full()
-                        .rounded_full()
-                        .bg(rgb(0xa79aff)),
-                )
-                .child(
-                    div()
-                        .absolute()
-                        .left(px(
-                            (WIDTH * f32::from(percent) / 100.0 - 6.0).clamp(0.0, WIDTH - 12.0)
-                        ))
-                        .top(px(-3.0))
-                        .size(px(12.0))
-                        .rounded_full()
-                        .bg(rgb(0xededf2)),
-                ),
+                .bg(rgb(0xa79aff)),
+        )
+        .child(
+            div()
+                .absolute()
+                .left(px(
+                    (WIDTH * f32::from(percent) / 100.0 - 6.0).clamp(0.0, WIDTH - 12.0)
+                ))
+                .top(px(-3.0))
+                .size(px(12.0))
+                .rounded_full()
+                .bg(rgb(0xededf2)),
         )
 }
 

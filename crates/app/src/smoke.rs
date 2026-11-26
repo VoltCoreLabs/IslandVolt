@@ -59,6 +59,22 @@ pub fn check_layout(handle: WindowHandle<Island>, cx: &mut App) {
                 return;
             }
         }
+        if handle.update(cx, |island, _, cx| {
+            island.hover_changed(true, cx);
+            island.open_mixer(cx);
+        }).is_err() {
+            eprintln!("Smoke: не удалось открыть микшер");
+            return;
+        }
+        executor.timer(Duration::from_millis(700)).await;
+        match handle.update(cx, |island, _, cx| {
+            let ready = island.mixer.as_ref().is_some_and(|mixer| mixer.ready());
+            let handled = island.mixer_key("escape", cx);
+            ready && handled && island.mixer.is_none()
+        }) {
+            Ok(true) => println!("Smoke: панель микшера получила снимок и закрылась по Esc"),
+            _ => eprintln!("Smoke: микшер не получил снимок или не закрылся"),
+        }
     })
     .detach();
 }

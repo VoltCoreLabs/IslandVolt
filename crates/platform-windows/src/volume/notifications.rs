@@ -27,7 +27,7 @@ pub(super) fn volume_callback(sender: Sender<Message>) -> IAudioEndpointVolumeCa
 }
 
 #[implement(IMMNotificationClient)]
-struct DeviceCallback(Sender<Message>);
+struct DeviceCallback(Box<dyn Fn() + Send + Sync>);
 
 impl IMMNotificationClient_Impl for DeviceCallback_Impl {
     fn OnDeviceStateChanged(&self, _: &PCWSTR, _: DEVICE_STATE) -> windows::core::Result<()> {
@@ -49,12 +49,12 @@ impl IMMNotificationClient_Impl for DeviceCallback_Impl {
         _: &PCWSTR,
     ) -> windows::core::Result<()> {
         if flow == eRender && role == eConsole {
-            let _ = self.0.try_send(Message::Rebind);
+            (self.0)();
         }
         Ok(())
     }
 }
 
-pub(super) fn device_callback(sender: Sender<Message>) -> IMMNotificationClient {
-    DeviceCallback(sender).into()
+pub(crate) fn device_callback(notify: impl Fn() + Send + Sync + 'static) -> IMMNotificationClient {
+    DeviceCallback(Box::new(notify)).into()
 }

@@ -23,7 +23,7 @@ ARM64 и 32-битная Windows пока не включены в первую 
 | Трей, hotkeys | Win32 shell и hotkey APIs | Жизненный цикл, конфликты комбинаций |
 | Музыка | GlobalSystemMediaTransportControlsSessionManager | Несколько сессий, отсутствие метаданных |
 | Громкость устройства | Core Audio endpoint volume | Смена устройства, mute, уведомления |
-| Громкость приложения | Core Audio audio sessions | Несколько сессий одного процесса |
+| Громкость приложения | IAudioSessionManager2, ISimpleAudioVolume | Несколько сессий одного процесса |
 | Активный источник звука | Сессии, process ID, уровень активности | Тишина, несколько процессов, сопоставление |
 | Запись общего звука | WASAPI loopback | Формат, устройства, защищённый контент |
 | Запись отдельного процесса | Application Loopback | Недоступно на обычной Windows 10 19045 |
@@ -94,6 +94,8 @@ Smoke-проверка в видимом окне сверяет viewport пос
 - [GPUI README](https://github.com/zed-industries/zed/blob/main/crates/gpui/README.md)
 - [Выбор Windows-бэкенда GPUI](https://github.com/zed-industries/zed/blob/main/crates/gpui_platform/src/gpui_platform.rs)
 - [System media control](https://learn.microsoft.com/en-us/uwp/api/windows.media.control)
+- [Перечисление аудиосессий](https://learn.microsoft.com/en-us/windows/win32/api/audiopolicy/nn-audiopolicy-iaudiosessionenumerator)
+- [События аудиосессии](https://learn.microsoft.com/en-us/windows/win32/api/audiopolicy/nn-audiopolicy-iaudiosessionevents)
 - [DataReader.LoadAsync](https://learn.microsoft.com/en-us/uwp/api/windows.storage.streams.datareader.loadasync)
 - [Audio sessions](https://learn.microsoft.com/en-us/windows/win32/coreaudio/audio-sessions)
 - [WASAPI loopback](https://learn.microsoft.com/en-us/windows/win32/coreaudio/loopback-recording)

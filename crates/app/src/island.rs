@@ -13,6 +13,7 @@ pub struct Island {
     pub(crate) sources: Vec<Source>,
     pub(crate) selected_source: Option<u64>,
     pub(crate) show_sources: bool,
+    pub(crate) mixer: Option<crate::mixer_panel::MixerPanel>,
     pub(crate) hover: crate::hover::Hover,
     pub(crate) hidden: bool,
     pub(crate) keyboard: crate::keyboard::Keyboard,
@@ -135,6 +136,7 @@ impl Island {
             sources: Vec::new(),
             selected_source: None,
             show_sources: false,
+            mixer: None,
             hover: crate::hover::Hover {
                 inside: false,
                 pending: None,
