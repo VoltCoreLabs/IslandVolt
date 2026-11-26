@@ -4,6 +4,7 @@ mod hover;
 mod input_indicator;
 mod island;
 mod keyboard;
+mod launcher_panel;
 mod layout;
 mod mixer_panel;
 mod panel;

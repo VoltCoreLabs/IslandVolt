@@ -4,6 +4,9 @@ use gpui::{AnyElement, Context, IntoElement, MouseButton, div, prelude::*, px, s
 use islandvolt_platform_windows::{media::MediaAction, volume::Action};
 
 pub fn render(island: &Island, palette: Palette, cx: &mut Context<Island>) -> AnyElement {
+    if island.show_launcher {
+        return island.launcher.render(palette, cx);
+    }
     if let Some(mixer) = &island.mixer {
         return mixer.render(palette, cx);
     }

@@ -4,7 +4,7 @@ use crate::theme::ThemeMode;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-#[derive(Clone, Copy, Default, Serialize, Deserialize)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub(crate) struct Preferences {
     #[serde(default)]
     pub wide: bool,
@@ -16,6 +16,8 @@ pub(crate) struct Preferences {
     pub pet_kind: PetKind,
     #[serde(default)]
     pub theme: ThemeMode,
+    #[serde(default)]
+    pub launcher_apps: Vec<PathBuf>,
 }
 
 pub struct Settings {
@@ -71,7 +73,7 @@ impl Settings {
         (
             Self {
                 sender,
-                current: std::sync::Mutex::new(preferences),
+                current: std::sync::Mutex::new(preferences.clone()),
             },
             preferences,
             shutdown,
@@ -81,35 +83,42 @@ impl Settings {
     pub fn save_width(&self, wide: bool) {
         if let Ok(mut preferences) = self.current.lock() {
             preferences.wide = wide;
-            let _ = self.sender.force_send(*preferences);
+            let _ = self.sender.force_send(preferences.clone());
         }
     }
 
     pub fn save_pinned(&self, pinned: bool) {
         if let Ok(mut preferences) = self.current.lock() {
             preferences.pinned = pinned;
-            let _ = self.sender.force_send(*preferences);
+            let _ = self.sender.force_send(preferences.clone());
         }
     }
 
     pub fn save_pet_hidden(&self, hidden: bool) {
         if let Ok(mut preferences) = self.current.lock() {
             preferences.pet_hidden = hidden;
-            let _ = self.sender.force_send(*preferences);
+            let _ = self.sender.force_send(preferences.clone());
         }
     }
 
     pub fn save_pet_kind(&self, kind: PetKind) {
         if let Ok(mut preferences) = self.current.lock() {
             preferences.pet_kind = kind;
-            let _ = self.sender.force_send(*preferences);
+            let _ = self.sender.force_send(preferences.clone());
         }
     }
 
     pub fn save_theme(&self, theme: ThemeMode) {
         if let Ok(mut preferences) = self.current.lock() {
             preferences.theme = theme;
-            let _ = self.sender.force_send(*preferences);
+            let _ = self.sender.force_send(preferences.clone());
+        }
+    }
+
+    pub fn save_launcher(&self, paths: Vec<PathBuf>) {
+        if let Ok(mut preferences) = self.current.lock() {
+            preferences.launcher_apps = paths;
+            let _ = self.sender.force_send(preferences.clone());
         }
     }
 }
@@ -142,6 +151,7 @@ mod tests {
         assert!(!saved.pet_hidden);
         assert_eq!(saved.pet_kind, PetKind::Cat);
         assert_eq!(saved.theme, ThemeMode::Dark);
+        assert!(saved.launcher_apps.is_empty());
     }
     #[test]
     fn shutdown_flushes_latest_preference() {
@@ -155,6 +165,7 @@ mod tests {
         settings.save_pet_hidden(true);
         settings.save_pet_kind(PetKind::Rabbit);
         settings.save_theme(ThemeMode::System);
+        settings.save_launcher(vec![PathBuf::from(r"C:\Program Files\App\app.exe")]);
         shutdown.finish();
         let saved: Preferences =
             serde_json::from_slice(&std::fs::read(&path).expect("saved settings")).expect("parse");
@@ -163,6 +174,10 @@ mod tests {
         assert!(saved.pet_hidden);
         assert_eq!(saved.pet_kind, PetKind::Rabbit);
         assert_eq!(saved.theme, ThemeMode::System);
+        assert_eq!(
+            saved.launcher_apps,
+            vec![PathBuf::from(r"C:\Program Files\App\app.exe")]
+        );
         std::fs::remove_file(path).expect("remove test file");
         std::fs::remove_dir(folder).expect("remove test folder");
     }

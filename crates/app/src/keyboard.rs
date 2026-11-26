@@ -79,6 +79,7 @@ impl Island {
         self.pinned = false;
         self.settings.save_pinned(false);
         self.show_sources = false;
+        self.show_launcher = false;
         self.close_mixer(cx);
         self.sync_pet(cx);
         self.dragging_volume = false;
@@ -99,6 +100,10 @@ impl Island {
             return;
         }
         if self.mixer_key(&event.keystroke.key, cx) {
+            cx.stop_propagation();
+            return;
+        }
+        if self.launcher_key(&event.keystroke.key, cx) {
             cx.stop_propagation();
             return;
         }

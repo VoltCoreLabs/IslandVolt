@@ -11,14 +11,17 @@ use windows::{
 };
 
 struct State {
+    read: Box<dyn Fn() -> Option<InputLanguage>>,
     shell_message: u32,
     sender: Sender<Result<Option<InputLanguage>, String>>,
     last: Option<InputLanguage>,
 }
 
+const REFRESH_TIMER: usize = 1;
+
 impl State {
     fn refresh(&mut self) {
-        let next = current();
+        let next = (self.read)();
         if next != self.last {
             self.last = next.clone();
             let _ = self.sender.force_send(Ok(next));
@@ -30,6 +33,14 @@ pub(super) fn run(
     stop: Arc<Stop>,
     sender: Sender<Result<Option<InputLanguage>, String>>,
 ) -> windows::core::Result<()> {
+    run_with_reader(stop, sender, current)
+}
+
+fn run_with_reader(
+    stop: Arc<Stop>,
+    sender: Sender<Result<Option<InputLanguage>, String>>,
+    read: impl Fn() -> Option<InputLanguage> + 'static,
+) -> windows::core::Result<()> {
     // SAFETY: all window/class pointers remain valid through the message loop. The state is
     // stack-owned on this thread, installed in WM_NCCREATE, and detached before it is dropped.
     unsafe {
@@ -38,7 +49,8 @@ pub(super) fn run(
         let mut state = State {
             shell_message: RegisterWindowMessageW(w!("SHELLHOOK")),
             sender,
-            last: current(),
+            last: read(),
+            read: Box::new(read),
         };
         let mut message = MSG::default();
         let _ = PeekMessageW(&mut message, None, 0, 0, PM_NOREMOVE);
@@ -72,7 +84,10 @@ pub(super) fn run(
         let result = match created {
             Ok(window) => {
                 let subscribed = RegisterShellHookWindow(window).as_bool();
-                let result = if subscribed {
+                // Shell does not reliably publish HSHELL_LANGUAGE on current Windows builds.
+                // A 100 ms native timer reads the foreground HKL; only changes reach the UI.
+                let timer = SetTimer(Some(window), REFRESH_TIMER, 100, None);
+                let result = if timer != 0 {
                     let _ = state.sender.force_send(Ok(state.last.clone()));
                     loop {
                         let received = GetMessageW(&mut message, None, 0, 0).0;
@@ -87,6 +102,9 @@ pub(super) fn run(
                 } else {
                     Err(windows::core::Error::from_win32())
                 };
+                if timer != 0 {
+                    let _ = KillTimer(Some(window), REFRESH_TIMER);
+                }
                 if subscribed {
                     let _ = DeregisterShellHookWindow(window);
                 }
@@ -100,6 +118,9 @@ pub(super) fn run(
         result
     }
 }
+
+#[cfg(test)]
+mod tests;
 
 unsafe extern "system" fn procedure(
     window: HWND,
@@ -115,11 +136,11 @@ unsafe extern "system" fn procedure(
             SetWindowLongPtrW(window, GWLP_USERDATA, creation.lpCreateParams as isize);
         }
         let state = GetWindowLongPtrW(window, GWLP_USERDATA) as *mut State;
-        if let Some(state) = state.as_mut()
-            && message == state.shell_message
-        {
+        if let Some(state) = state.as_mut() {
             // HSHELL_LANGUAGE (8), WINDOWACTIVATED (4), RUDEAPPACTIVATED (0x8004).
-            if matches!(param.0, 4 | 8 | 0x8004) {
+            if (message == state.shell_message && matches!(param.0, 4 | 8 | 0x8004))
+                || (message == WM_TIMER && param.0 == REFRESH_TIMER)
+            {
                 state.refresh();
             }
         }

@@ -23,6 +23,8 @@ impl Island {
                 let _ = this.update(cx, |island, cx| {
                     if island.can_auto_collapse() {
                         island.expanded = false;
+                        island.show_launcher = false;
+                        island.sync_pet(cx);
                         island.transition.set(false);
                         island.close_mixer(cx);
                         cx.notify();
@@ -36,7 +38,9 @@ impl Island {
         can_collapse(
             self.hover.inside,
             self.pinned,
-            self.dragging_volume || self.mixer.as_ref().is_some_and(|mixer| mixer.dragging()),
+            self.dragging_volume
+                || self.mixer.as_ref().is_some_and(|mixer| mixer.dragging())
+                || self.launcher.busy,
             self.keyboard.open,
         )
     }

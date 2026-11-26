@@ -2,6 +2,7 @@
 
 mod frame;
 pub mod input_language;
+pub mod launcher;
 pub mod media;
 pub mod mixer;
 pub mod shortcut;
