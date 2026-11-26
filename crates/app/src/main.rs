@@ -7,10 +7,12 @@ mod layout;
 mod panel;
 mod panel_footer;
 mod pet;
+mod pet_catalog;
 mod settings;
 mod silhouette;
 mod smoke;
 mod source_picker;
+mod track_artwork;
 mod transition;
 mod tray;
 mod volume_slider;
@@ -24,6 +26,7 @@ use island::Island;
 fn main() {
     let smoke_test = std::env::args().any(|argument| argument == "--smoke-test");
     let (settings, preferences, shutdown) = settings::Settings::open();
+    let pet_catalog = pet_catalog::PetCatalog::load();
     Application::new()
         .with_assets(assets::Icons)
         .run(move |cx: &mut App| {
@@ -61,7 +64,7 @@ fn main() {
                         cx.quit();
                         true
                     });
-                    cx.new(|cx| Island::new(window, cx, settings, preferences))
+                    cx.new(|cx| Island::new(window, cx, settings, preferences, pet_catalog))
                 },
             );
             match opened {

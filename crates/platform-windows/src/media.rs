@@ -1,5 +1,6 @@
 //! Event-driven Windows media session monitor.
 
+use std::sync::Arc;
 use windows::{
     Foundation::TypedEventHandler,
     Media::Control::{
@@ -10,8 +11,10 @@ use windows::{
     Win32::System::Com::{COINIT_MULTITHREADED, CoInitializeEx, CoUninitialize},
 };
 
+mod artwork;
 mod controls;
 mod sessions;
+pub use artwork::Artwork;
 pub use controls::MediaAction;
 
 #[derive(Clone, Debug)]
@@ -36,11 +39,13 @@ pub struct Track {
     pub can_previous: bool,
     pub can_next: bool,
     pub session_id: u64,
+    pub artwork: Option<Arc<Artwork>>,
 }
 
 #[derive(Clone, Copy)]
 enum Message {
     Refresh,
+    Playback,
     Control(u64, MediaAction),
     Select(Option<u64>),
 }
@@ -124,6 +129,7 @@ fn run(
     let mut subscribed: Option<(Session, i64, i64)> = None;
     let mut sessions = sessions::Sessions::new();
     let mut selected = None;
+    let mut previous_track = None;
     let _ = notify.try_send(Message::Refresh);
     while let Ok(message) = events.recv_blocking() {
         if let Err(error) = sessions.refresh(&manager) {
@@ -154,7 +160,7 @@ fn run(
                     }));
                 let playback_signal = notify.clone();
                 let playback = session.PlaybackInfoChanged(&TypedEventHandler::new(move |_, _| {
-                    let _ = playback_signal.try_send(Message::Refresh);
+                    let _ = playback_signal.try_send(Message::Playback);
                     Ok(())
                 }));
                 match (properties, playback) {
@@ -181,7 +187,12 @@ fn run(
                 let _ = updates.try_send(Err(error));
             }
         }
-        let track = current.and_then(|session| read_track(&session, session_id).ok());
+        let reuse_cover = match message {
+            Message::Playback | Message::Control(..) => previous_track.as_ref(),
+            _ => None,
+        };
+        let track = current.and_then(|session| read_track(&session, session_id, reuse_cover).ok());
+        previous_track = track.clone();
         let state = MediaState {
             track,
             sources: sessions.sources(),
@@ -204,14 +215,28 @@ fn unsubscribe(subscription: Option<(Session, i64, i64)>) {
     }
 }
 
-fn read_track(session: &Session, session_id: u64) -> windows::core::Result<Track> {
+fn read_track(
+    session: &Session,
+    session_id: u64,
+    previous: Option<&Track>,
+) -> windows::core::Result<Track> {
     let properties = session.TryGetMediaPropertiesAsync()?.get()?;
     let playback = session.GetPlaybackInfo()?;
     let playing = playback.PlaybackStatus()? == PlaybackStatus::Playing;
     let controls = playback.Controls()?;
+    let title = properties.Title()?.to_string_lossy();
+    let artist = properties.Artist()?.to_string_lossy();
+    let artwork = match previous {
+        Some(track)
+            if track.session_id == session_id && track.title == title && track.artist == artist =>
+        {
+            track.artwork.clone()
+        }
+        _ => artwork::read(&properties).map(Arc::new),
+    };
     Ok(Track {
-        title: properties.Title()?.to_string_lossy(),
-        artist: properties.Artist()?.to_string_lossy(),
+        title,
+        artist,
         playing,
         can_toggle: if playing {
             controls.IsPauseEnabled()?
@@ -221,5 +246,6 @@ fn read_track(session: &Session, session_id: u64) -> windows::core::Result<Track
         can_previous: controls.IsPreviousEnabled()?,
         can_next: controls.IsNextEnabled()?,
         session_id,
+        artwork,
     })
 }

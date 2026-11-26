@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-const DURATION: Duration = Duration::from_millis(180);
+const DURATION: Duration = Duration::from_millis(260);
 
 /// Interruptible interpolation between compact and expanded window sizes.
 pub struct Transition {
@@ -36,12 +36,12 @@ impl Transition {
 
     pub fn value(&self) -> f32 {
         let t = (self.started.elapsed().as_secs_f32() / DURATION.as_secs_f32()).clamp(0.0, 1.0);
-        let eased = 1.0 - (1.0 - t).powi(3);
+        let eased = t * t * (3.0 - 2.0 * t);
         self.from + (self.to - self.from) * eased
     }
 
     pub fn active(&self) -> bool {
-        (self.value() - self.to).abs() > 0.001
+        self.from != self.to && self.started.elapsed() < DURATION
     }
 }
 

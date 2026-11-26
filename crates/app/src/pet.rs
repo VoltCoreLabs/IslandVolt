@@ -1,43 +1,61 @@
 //! GPUI owner for the pet: one cancellable deadline, independent of island redraws.
-use gpui::{Context, IntoElement, Render, Task, div, prelude::*, px, rgb, svg};
+use crate::pet_catalog::{PetCatalog, PetKind};
+use gpui::{Context, IntoElement, Render, Task, div, img, prelude::*, px};
 use islandvolt_features::pets::{Animator, Package};
 
 pub struct Pet {
     animator: Option<Animator>,
+    catalog: PetCatalog,
+    kind: PetKind,
+    visible: bool,
     timer: Option<Task<()>>,
 }
 
 impl Pet {
-    pub fn new(cx: &mut Context<Self>, visible: bool) -> Self {
-        let mut animator =
-            match Package::from_json(include_str!("../../../assets/pets/volt-cat/manifest.json")) {
-                Ok(package) => Some(Animator::new(
-                    package,
-                    !islandvolt_platform_windows::animations_enabled(),
-                )),
-                Err(error) => {
-                    eprintln!("Питомец отключён: {error}");
-                    None
-                }
-            };
-        if let Some(animator) = &mut animator {
-            animator.set_visible(visible);
-        }
+    pub fn new(cx: &mut Context<Self>, catalog: PetCatalog, kind: PetKind, visible: bool) -> Self {
         let mut pet = Self {
-            animator,
+            animator: None,
+            catalog,
+            kind,
+            visible,
             timer: None,
         };
-        pet.arm(cx);
+        pet.select(kind, cx);
         pet
     }
 
+    fn select(&mut self, kind: PetKind, cx: &mut Context<Self>) {
+        match Package::from_json(kind.manifest()) {
+            Ok(package) => {
+                let mut animator =
+                    Animator::new(package, !islandvolt_platform_windows::animations_enabled());
+                animator.set_visible(self.visible);
+                self.kind = kind;
+                self.animator = Some(animator);
+                self.arm(cx);
+                cx.notify();
+            }
+            Err(error) => eprintln!("Не удалось выбрать питомца: {error}"),
+        }
+    }
+
+    pub fn name(&self) -> &str {
+        self.animator.as_ref().map_or("Питомец", Animator::name)
+    }
+
+    pub fn cycle(&mut self, cx: &mut Context<Self>) -> PetKind {
+        self.select(self.kind.next(), cx);
+        self.react(cx);
+        self.kind
+    }
+
     pub fn set_visible(&mut self, visible: bool, cx: &mut Context<Self>) {
+        self.visible = visible;
         if self
             .animator
             .as_mut()
             .is_some_and(|animator| animator.set_visible(visible))
         {
-            self.timer.take();
             self.arm(cx);
             cx.notify();
         }
@@ -74,21 +92,19 @@ impl Render for Pet {
     fn render(&mut self, _: &mut gpui::Window, cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .id("island-pet")
-            .size(px(32.0))
+            .size(px(42.0))
             .flex_shrink_0()
             .cursor_pointer()
             .on_click(cx.listener(|pet, _, _, cx| {
                 cx.stop_propagation();
                 pet.react(cx);
             }))
-            .when_some(self.animator.as_ref(), |view, animator| {
-                view.child(
-                    svg()
-                        .path(animator.frame().asset.clone())
-                        .size_full()
-                        .text_color(rgb(0xf5ead8)),
-                )
-            })
+            .when_some(
+                self.animator
+                    .as_ref()
+                    .and_then(|animator| self.catalog.frame(&animator.frame().asset)),
+                |view, frame| view.child(img(frame).size_full()),
+            )
     }
 }
 

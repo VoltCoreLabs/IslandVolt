@@ -79,6 +79,10 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
                 .items_center()
                 .justify_between()
                 .gap(px(16.0))
+                .child(crate::track_artwork::thumbnail(
+                    island.track_artwork.as_ref(),
+                    40.0,
+                ))
                 .child(
                     div()
                         .flex()

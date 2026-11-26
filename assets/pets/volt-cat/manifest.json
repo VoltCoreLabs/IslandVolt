@@ -4,16 +4,40 @@
   "name": "Вольт",
   "author": "IslandVolt contributors",
   "license": "MIT",
-  "size": 48,
+  "size": 72,
   "sleep_after_ms": 60000,
   "animations": {
-    "idle": [{ "asset": "pets/volt-cat/idle.svg", "duration_ms": 4600 }],
-    "blink": [{ "asset": "pets/volt-cat/blink.svg", "duration_ms": 140 }],
-    "happy": [
-      { "asset": "pets/volt-cat/happy.svg", "duration_ms": 180 },
-      { "asset": "pets/volt-cat/happy-up.svg", "duration_ms": 180 },
-      { "asset": "pets/volt-cat/happy.svg", "duration_ms": 600 }
+    "idle": [
+      {
+        "asset": "pets/volt-cat/idle.svg",
+        "duration_ms": 4300
+      }
     ],
-    "sleep": [{ "asset": "pets/volt-cat/sleep.svg", "duration_ms": 1000 }]
+    "blink": [
+      {
+        "asset": "pets/volt-cat/blink.svg",
+        "duration_ms": 140
+      }
+    ],
+    "happy": [
+      {
+        "asset": "pets/volt-cat/happy.svg",
+        "duration_ms": 90
+      },
+      {
+        "asset": "pets/volt-cat/happy-up.svg",
+        "duration_ms": 160
+      },
+      {
+        "asset": "pets/volt-cat/happy.svg",
+        "duration_ms": 240
+      }
+    ],
+    "sleep": [
+      {
+        "asset": "pets/volt-cat/sleep.svg",
+        "duration_ms": 1000
+      }
+    ]
   }
 }

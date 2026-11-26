@@ -33,6 +33,7 @@ pub struct Island {
     _volume_task: Task<()>,
     _clock: Task<()>,
     pub(crate) track: Option<Track>,
+    pub(crate) track_artwork: Option<std::sync::Arc<gpui::RenderImage>>,
     pub(crate) media_error: Option<String>,
     pub(crate) media_monitor: MediaMonitor,
     _media_task: Task<()>,
@@ -44,6 +45,7 @@ impl Island {
         cx: &mut Context<Self>,
         settings: crate::settings::Settings,
         preferences: crate::settings::Preferences,
+        pet_catalog: crate::pet_catalog::PetCatalog,
     ) -> Self {
         let executor = cx.background_executor().clone();
         let clock = cx.spawn(async move |this, cx| {
@@ -58,12 +60,27 @@ impl Island {
             }
         });
         let (monitor, updates) = media::watch();
-        let media_task = cx.spawn(async move |this, cx| {
+        let media_task = cx.spawn_in(window, async move |this, cx| {
             while let Ok(result) = updates.recv().await {
                 if this
-                    .update(cx, |island, cx| {
+                    .update_in(cx, |island, window, cx| {
                         match result {
                             Ok(state) => {
+                                let cover = state
+                                    .track
+                                    .as_ref()
+                                    .and_then(|track| track.artwork.as_ref());
+                                let previous = island
+                                    .track
+                                    .as_ref()
+                                    .and_then(|track| track.artwork.as_ref());
+                                if previous != cover {
+                                    if let Some(outdated) = island.track_artwork.take() {
+                                        let _ = window.drop_image(outdated);
+                                    }
+                                    island.track_artwork =
+                                        cover.and_then(|art| crate::track_artwork::prepare(art));
+                                }
                                 island.track = state.track;
                                 island.sources = state.sources;
                                 island.selected_source = state.selected;
@@ -106,7 +123,14 @@ impl Island {
         let mut transition = Transition::new(islandvolt_platform_windows::animations_enabled());
         transition.set(preferences.pinned);
         Self {
-            pet: cx.new(|cx| crate::pet::Pet::new(cx, !preferences.pet_hidden)),
+            pet: cx.new(|cx| {
+                crate::pet::Pet::new(
+                    cx,
+                    pet_catalog,
+                    preferences.pet_kind,
+                    !preferences.pet_hidden,
+                )
+            }),
             pet_hidden: preferences.pet_hidden,
             sources: Vec::new(),
             selected_source: None,
@@ -134,6 +158,7 @@ impl Island {
             _volume_task: volume_task,
             _clock: clock,
             track: None,
+            track_artwork: None,
             media_error: None,
             media_monitor: monitor,
             _media_task: media_task,
@@ -152,22 +177,31 @@ impl Render for Island {
             (height * scale).round() as i32,
         );
         if self.last_size != Some(physical) {
+            let previous_width = self.last_size.map(|(width, _)| width);
             self.last_size = Some(physical);
             // GPUI queues the native resize outside the borrowed Window update.
             // A direct SetWindowPos here reenters WM_SIZE before GPUI can update its viewport.
             window.resize(size(px(width), px(height)));
-            window.defer(cx, move |window, _| {
-                if let Err(error) = islandvolt_platform_windows::position_island(window, physical.0)
-                {
-                    eprintln!("Не удалось расположить остров у верхнего края: {error}");
-                }
-            });
+            if previous_width != Some(physical.0) {
+                window.defer(cx, move |window, _| {
+                    if let Err(error) =
+                        islandvolt_platform_windows::position_island(window, physical.0)
+                    {
+                        eprintln!("Не удалось расположить остров у верхнего края: {error}");
+                    }
+                });
+            }
         }
         if active && !self.hidden {
             window.request_animation_frame();
         }
-        let content = if self.expanded {
-            crate::panel::render(self, cx)
+        let content = if progress >= 0.15 || (self.expanded && !active) {
+            div()
+                .w_full()
+                .h(px(crate::layout::EXPANDED_HEIGHT))
+                .opacity(((progress - 0.15) / 0.35).clamp(0.0, 1.0))
+                .child(crate::panel::render(self, cx))
+                .into_any_element()
         } else {
             self.compact(cx)
         };

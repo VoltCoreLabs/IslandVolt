@@ -11,7 +11,7 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> impl IntoElement {
         .child(
             div()
                 .flex()
-                .gap(px(18.0))
+                .gap(px(12.0))
                 .text_xs()
                 .text_color(rgb(0xc8c9d4))
                 .child(
@@ -31,12 +31,23 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> impl IntoElement {
                 )
                 .child(
                     div()
+                        .id("cycle-pet")
+                        .cursor_pointer()
+                        .child(format!("Сменить · {}", island.pet.read(cx).name()))
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            let kind = this.pet.update(cx, |pet, cx| pet.cycle(cx));
+                            this.settings.save_pet_kind(kind);
+                            cx.notify();
+                        })),
+                )
+                .child(
+                    div()
                         .id("toggle-pet")
                         .cursor_pointer()
                         .child(if island.pet_hidden {
-                            "Показать кота"
+                            "Показать питомца"
                         } else {
-                            "Скрыть кота"
+                            "Скрыть питомца"
                         })
                         .on_click(cx.listener(|this, _, _, cx| {
                             this.pet_hidden = !this.pet_hidden;
@@ -50,7 +61,7 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> impl IntoElement {
             div()
                 .text_size(px(10.0))
                 .text_color(rgb(0x858793))
-                .child("← → звук · M mute · P кот · Esc свернуть"),
+                .child("← → звук · M mute · P питомец · Esc свернуть"),
         )
         .child(div().text_size(px(10.0)).text_color(rgb(0x999ba9)).child(
             if island.keyboard.unavailable {

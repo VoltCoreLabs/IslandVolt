@@ -8,16 +8,41 @@ pub fn check_layout(handle: WindowHandle<Island>, cx: &mut App) {
     cx.spawn(async move |cx| {
         for (wide, expanded) in [(false, false), (false, true), (true, true), (true, false)] {
             executor.timer(Duration::from_millis(350)).await;
-            if let Err(error) = handle.update(cx, |island, _, cx| {
+            let outcome = handle.update(cx, |island, _, cx| {
                 island.hover.pending.take();
                 island.pinned = true;
                 island.wide = wide;
-                island.expanded = expanded;
-                island.transition.set(expanded);
+                if expanded {
+                    island.hover_changed(true, cx);
+                } else {
+                    island.expanded = false;
+                    island.transition.set(false);
+                }
                 cx.notify();
-            }) {
-                eprintln!("Smoke: не удалось изменить состояние окна: {error}");
-                return;
+                island.transition.active()
+            });
+            let animated = match outcome {
+                Ok(animated) => animated,
+                Err(error) => {
+                    eprintln!("Smoke: не удалось изменить состояние окна: {error}");
+                    return;
+                }
+            };
+            if expanded && animated {
+                let mut saw_intermediate_height = false;
+                for _ in 0..8 {
+                    executor.timer(Duration::from_millis(25)).await;
+                    if let Ok(height) = handle.update(cx, |_, window, _| f32::from(window.viewport_size().height)) {
+                        let compact = crate::layout::dimensions(wide, 0.0).1;
+                        saw_intermediate_height |= height > compact + 2.0
+                            && height < crate::layout::EXPANDED_HEIGHT - 2.0;
+                    }
+                }
+                if saw_intermediate_height {
+                    println!("Smoke: зафиксирована промежуточная высота при наведении");
+                } else {
+                    eprintln!("Smoke: пропущена промежуточная высота при наведении");
+                }
             }
             executor.timer(Duration::from_millis(500)).await;
             let result = handle.update(cx, |island, window, _| {

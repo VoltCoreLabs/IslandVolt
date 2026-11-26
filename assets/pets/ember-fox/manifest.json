@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "id": "ember-fox",
+  "name": "Искра",
+  "author": "IslandVolt contributors",
+  "license": "MIT",
+  "size": 72,
+  "sleep_after_ms": 60000,
+  "animations": {
+    "idle": [
+      {
+        "asset": "pets/ember-fox/idle.svg",
+        "duration_ms": 4300
+      }
+    ],
+    "blink": [
+      {
+        "asset": "pets/ember-fox/blink.svg",
+        "duration_ms": 140
+      }
+    ],
+    "happy": [
+      {
+        "asset": "pets/ember-fox/happy.svg",
+        "duration_ms": 90
+      },
+      {
+        "asset": "pets/ember-fox/happy-up.svg",
+        "duration_ms": 160
+      },
+      {
+        "asset": "pets/ember-fox/happy.svg",
+        "duration_ms": 240
+      }
+    ],
+    "sleep": [
+      {
+        "asset": "pets/ember-fox/sleep.svg",
+        "duration_ms": 1000
+      }
+    ]
+  }
+}

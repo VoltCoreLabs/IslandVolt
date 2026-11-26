@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "id": "mint-rabbit",
+  "name": "Мята",
+  "author": "IslandVolt contributors",
+  "license": "MIT",
+  "size": 72,
+  "sleep_after_ms": 60000,
+  "animations": {
+    "idle": [
+      {
+        "asset": "pets/mint-rabbit/idle.svg",
+        "duration_ms": 4300
+      }
+    ],
+    "blink": [
+      {
+        "asset": "pets/mint-rabbit/blink.svg",
+        "duration_ms": 140
+      }
+    ],
+    "happy": [
+      {
+        "asset": "pets/mint-rabbit/happy.svg",
+        "duration_ms": 90
+      },
+      {
+        "asset": "pets/mint-rabbit/happy-up.svg",
+        "duration_ms": 160
+      },
+      {
+        "asset": "pets/mint-rabbit/happy.svg",
+        "duration_ms": 240
+      }
+    ],
+    "sleep": [
+      {
+        "asset": "pets/mint-rabbit/sleep.svg",
+        "duration_ms": 1000
+      }
+    ]
+  }
+}
