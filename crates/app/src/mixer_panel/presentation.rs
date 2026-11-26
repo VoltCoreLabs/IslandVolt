@@ -1,11 +1,12 @@
 use super::MixerPanel;
+use crate::theme::Palette;
 use crate::{island::Island, volume_slider};
-use gpui::{AnyElement, Context, IntoElement, MouseButton, div, prelude::*, px, rgb, svg};
+use gpui::{AnyElement, Context, IntoElement, MouseButton, div, prelude::*, px, svg};
 use islandvolt_platform_windows::mixer::{Action, Session};
 use std::time::Instant;
 
 impl MixerPanel {
-    pub fn render(&self, cx: &mut Context<Island>) -> AnyElement {
+    pub fn render(&self, palette: Palette, cx: &mut Context<Island>) -> AnyElement {
         let output = self
             .snapshot
             .as_ref()
@@ -53,7 +54,7 @@ impl MixerPanel {
                     .items_center()
                     .justify_between()
                     .text_xs()
-                    .text_color(rgb(0xb4b6c2))
+                    .text_color(palette.secondary)
                     .child(
                         div()
                             .id("mixer-back")
@@ -62,7 +63,7 @@ impl MixerPanel {
                                 svg()
                                     .path("icons/back.svg")
                                     .size(px(15.0))
-                                    .text_color(rgb(0xc8c9d4)),
+                                    .text_color(palette.text),
                             )
                             .on_click(cx.listener(|this, _, _, cx| this.close_mixer(cx))),
                     )
@@ -85,7 +86,7 @@ impl MixerPanel {
                     div()
                         .pt(px(28.0))
                         .text_sm()
-                        .text_color(rgb(0xb4b6c2))
+                        .text_color(palette.secondary)
                         .child(empty),
                 )
             })
@@ -97,7 +98,7 @@ impl MixerPanel {
                         .w(px(volume_slider::WIDTH))
                         .max_h(px(167.0))
                         .overflow_y_scroll()
-                        .children(self.rows().iter().map(|row| self.row(row, cx))),
+                        .children(self.rows().iter().map(|row| self.row(row, palette, cx))),
                 )
             })
             .when_some(warning.map(str::to_owned), |view, warning| {
@@ -106,20 +107,20 @@ impl MixerPanel {
                         .w(px(volume_slider::WIDTH))
                         .text_xs()
                         .truncate()
-                        .text_color(rgb(0xf5b9a1))
+                        .text_color(palette.warning)
                         .child(warning),
                 )
             })
             .child(
                 div()
                     .text_size(px(10.0))
-                    .text_color(rgb(0xb4b6c2))
+                    .text_color(palette.secondary)
                     .child("↑ ↓ сессия · ← → громкость · M звук · Esc назад"),
             )
             .into_any_element()
     }
 
-    fn row(&self, row: &Session, cx: &mut Context<Island>) -> AnyElement {
+    fn row(&self, row: &Session, palette: Palette, cx: &mut Context<Island>) -> AnyElement {
         let id = row.id;
         let muted = row.volume.muted;
         div()
@@ -133,9 +134,9 @@ impl MixerPanel {
                     .gap(px(8.0))
                     .text_xs()
                     .text_color(if self.selection == Some(id) {
-                        rgb(0xcabaff)
+                        palette.accent
                     } else {
-                        rgb(0xe2e3eb)
+                        palette.text
                     })
                     .child(
                         div()
@@ -149,7 +150,7 @@ impl MixerPanel {
                                         "icons/speaker.svg"
                                     })
                                     .size(px(16.0))
-                                    .text_color(rgb(0xc7c8d4)),
+                                    .text_color(palette.secondary),
                             )
                             .on_click(cx.listener(move |this, _, _, cx| {
                                 if let Some(panel) = &mut this.mixer {
@@ -187,7 +188,7 @@ impl MixerPanel {
                             }
                         }),
                     )
-                    .child(volume_slider::track(row.volume.percent)),
+                    .child(volume_slider::track(row.volume.percent, palette)),
             )
             .into_any_element()
     }

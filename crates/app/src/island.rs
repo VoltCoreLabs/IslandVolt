@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use crate::theme::ThemeMode;
 use crate::transition::Transition;
 use chrono::{Local, Timelike};
 use gpui::{Context, IntoElement, Render, Task, Window, div, prelude::*, px, size};
@@ -8,6 +9,8 @@ use islandvolt_platform_windows::tray::Tray;
 use islandvolt_platform_windows::volume::{self, VolumeMonitor, VolumeState};
 
 pub struct Island {
+    pub(crate) theme: ThemeMode,
+    _appearance: gpui::Subscription,
     pub(crate) pet: gpui::Entity<crate::pet::Pet>,
     pub(crate) pet_hidden: bool,
     pub(crate) sources: Vec<Source>,
@@ -42,7 +45,7 @@ pub struct Island {
 
 impl Island {
     pub fn new(
-        window: &Window,
+        window: &mut Window,
         cx: &mut Context<Self>,
         settings: crate::settings::Settings,
         preferences: crate::settings::Preferences,
@@ -121,9 +124,16 @@ impl Island {
         });
         let (tray, tray_task) = crate::tray::create(window, cx);
         let keyboard = crate::keyboard::Keyboard::new(window, cx);
+        let appearance = cx.observe_window_appearance(window, |island, _, cx| {
+            if island.theme == ThemeMode::System {
+                cx.notify();
+            }
+        });
         let mut transition = Transition::new(islandvolt_platform_windows::animations_enabled());
         transition.set(preferences.pinned);
         Self {
+            theme: preferences.theme,
+            _appearance: appearance,
             pet: cx.new(|cx| {
                 crate::pet::Pet::new(
                     cx,
@@ -171,6 +181,7 @@ impl Island {
 impl Render for Island {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let progress = self.transition.value();
+        let palette = self.theme.palette(window.appearance());
         let active = self.transition.active();
         let (width, height) = crate::layout::dimensions(self.wide, progress);
         let scale = window.scale_factor();
@@ -202,10 +213,10 @@ impl Render for Island {
                 .w_full()
                 .h(px(crate::layout::EXPANDED_HEIGHT))
                 .opacity(((progress - 0.15) / 0.35).clamp(0.0, 1.0))
-                .child(crate::panel::render(self, cx))
+                .child(crate::panel::render(self, palette, cx))
                 .into_any_element()
         } else {
-            self.compact(cx)
+            self.compact(palette)
         };
         div()
             .id("island-shell")
@@ -228,7 +239,7 @@ impl Render for Island {
                 }
                 this.hover_changed(*hovered, cx);
             }))
-            .child(crate::silhouette::background(width, height))
+            .child(crate::silhouette::background(width, height, palette.shell))
             .child(content)
     }
 }

@@ -1,17 +1,24 @@
 //! Runtime layout regression check, enabled only by --smoke-test.
 use crate::island::Island;
+use crate::theme::ThemeMode;
 use gpui::{App, WindowHandle};
 use std::time::Duration;
 
 pub fn check_layout(handle: WindowHandle<Island>, cx: &mut App) {
     let executor = cx.background_executor().clone();
     cx.spawn(async move |cx| {
-        for (wide, expanded) in [(false, false), (false, true), (true, true), (true, false)] {
+        for (wide, expanded, theme) in [
+            (false, false, ThemeMode::Dark),
+            (false, true, ThemeMode::Light),
+            (true, true, ThemeMode::System),
+            (true, false, ThemeMode::Dark),
+        ] {
             executor.timer(Duration::from_millis(350)).await;
             let outcome = handle.update(cx, |island, _, cx| {
                 island.hover.pending.take();
                 island.pinned = true;
                 island.wide = wide;
+                island.theme = theme;
                 if expanded {
                     island.hover_changed(true, cx);
                 } else {
@@ -61,6 +68,7 @@ pub fn check_layout(handle: WindowHandle<Island>, cx: &mut App) {
         }
         if handle.update(cx, |island, _, cx| {
             island.hover_changed(true, cx);
+            island.theme = ThemeMode::Light;
             island.open_mixer(cx);
         }).is_err() {
             eprintln!("Smoke: не удалось открыть микшер");

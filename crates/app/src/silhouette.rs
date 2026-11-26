@@ -1,15 +1,15 @@
 //! GPU-tessellated notch, open against the screen's top edge.
-use gpui::{Bounds, IntoElement, PathBuilder, Pixels, canvas, point, prelude::*, px, rgb};
+use gpui::{Bounds, IntoElement, PathBuilder, Pixels, Rgba, canvas, point, prelude::*, px};
 
-pub fn background(width: f32, height: f32) -> impl IntoElement {
+pub fn background(width: f32, height: f32, color: Rgba) -> impl IntoElement {
     canvas(
         |_, _, _| {},
-        |bounds, _, window, _| {
+        move |bounds, _, window, _| {
             let mut fill = PathBuilder::fill();
             contour(&mut fill, bounds);
             fill.close();
             match fill.build() {
-                Ok(path) => window.paint_path(path, rgb(0x030305)),
+                Ok(path) => window.paint_path(path, color),
                 Err(error) => eprintln!("Не удалось построить контур острова: {error}"),
             }
         },

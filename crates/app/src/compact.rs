@@ -1,10 +1,11 @@
 use crate::island::Island;
+use crate::theme::Palette;
 use chrono::Local;
-use gpui::{Context, IntoElement, div, prelude::*, px, rgb, svg};
+use gpui::{Context, IntoElement, div, prelude::*, px, svg};
 use islandvolt_platform_windows::media::MediaAction;
 
 impl Island {
-    pub(crate) fn compact(&mut self, _cx: &mut Context<Self>) -> gpui::AnyElement {
+    pub(crate) fn compact(&self, palette: Palette) -> gpui::AnyElement {
         let title = self
             .media_error
             .clone()
@@ -34,20 +35,21 @@ impl Island {
                         view.child(crate::track_artwork::thumbnail(
                             self.track_artwork.as_ref(),
                             28.0,
+                            palette,
                         ))
                     })
                     .child(
                         div()
                             .truncate()
                             .text_sm()
-                            .text_color(rgb(0xededf2))
+                            .text_color(palette.text)
                             .child(title),
                     ),
             )
             .child(
                 div()
                     .text_sm()
-                    .text_color(rgb(0xc9c9d2))
+                    .text_color(palette.secondary)
                     .child(Local::now().format("%H:%M").to_string()),
             )
             .into_any_element()
@@ -60,6 +62,7 @@ pub(crate) fn media_button(
     enabled: bool,
     session_id: u64,
     action: MediaAction,
+    palette: Palette,
     cx: &mut Context<Island>,
 ) -> impl IntoElement {
     div()
@@ -70,9 +73,9 @@ pub(crate) fn media_button(
         .size(px(26.0))
         .rounded_full()
         .text_color(if enabled {
-            rgb(0xf5f6fa)
+            palette.text
         } else {
-            rgb(0x8a8c9b)
+            palette.disabled
         })
         .on_click(cx.listener(move |this, _, _, cx| {
             cx.stop_propagation();
@@ -86,8 +89,8 @@ pub(crate) fn media_button(
             }
         }))
         .child(svg().path(icon).size(px(14.0)).text_color(if enabled {
-            rgb(0xf5f6fa)
+            palette.text
         } else {
-            rgb(0x8a8c9b)
+            palette.disabled
         }))
 }

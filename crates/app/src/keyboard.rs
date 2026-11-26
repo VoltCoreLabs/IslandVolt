@@ -109,6 +109,7 @@ impl Island {
             }
             "escape" => self.dismiss_panel(window, cx),
             "p" => self.pet.update(cx, |pet, cx| pet.react(cx)),
+            "t" => self.cycle_theme(cx),
             "left" => {
                 self.volume_error = self
                     .volume_monitor
