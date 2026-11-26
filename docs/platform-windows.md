@@ -84,6 +84,13 @@ Smoke-проверка в видимом окне сверяет viewport пос
 
 ## Первичные источники
 
+Язык ввода определяется через GetForegroundWindow → GetWindowThreadProcessId →
+GetKeyboardLayout. ISO-код языка берётся из locale раскладки. Наблюдатель использует
+уведомления SHELLHOOK о смене активного окна и языка, с ограниченным каналом обновлений.
+RegisterShellHookWindow относится к Shell API и может быть недоступен в некоторых сеансах.
+При отказе индикатор показывает отсутствие данных. Состояние IME
+(например, режим ввода внутри китайского языка) отдельным статусом пока не отображается.
+
 Обложка берётся из Thumbnail выбранной медиасессии. COM-поток ограничивает размер
 исходного потока 4 МиБ и ждёт каждую операцию чтения до 350 мс. В GPUI передаются
 пиксели миниатюры 128×128. Проверено чтение PNG через нативный поток WinRT
@@ -94,6 +101,8 @@ Smoke-проверка в видимом окне сверяет viewport пос
 - [GPUI README](https://github.com/zed-industries/zed/blob/main/crates/gpui/README.md)
 - [Выбор Windows-бэкенда GPUI](https://github.com/zed-industries/zed/blob/main/crates/gpui_platform/src/gpui_platform.rs)
 - [System media control](https://learn.microsoft.com/en-us/uwp/api/windows.media.control)
+- [RegisterShellHookWindow](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registershellhookwindow)
+- [ShellProc и событие языка](https://learn.microsoft.com/en-us/windows/win32/winmsg/shellproc)
 - [Перечисление аудиосессий](https://learn.microsoft.com/en-us/windows/win32/api/audiopolicy/nn-audiopolicy-iaudiosessionenumerator)
 - [События аудиосессии](https://learn.microsoft.com/en-us/windows/win32/api/audiopolicy/nn-audiopolicy-iaudiosessionevents)
 - [DataReader.LoadAsync](https://learn.microsoft.com/en-us/uwp/api/windows.storage.streams.datareader.loadasync)

@@ -1,6 +1,7 @@
 //! Windows window integration for the island prototype.
 
 mod frame;
+pub mod input_language;
 pub mod media;
 pub mod mixer;
 pub mod shortcut;
