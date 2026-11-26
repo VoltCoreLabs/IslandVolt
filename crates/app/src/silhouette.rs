@@ -12,11 +12,6 @@ pub fn background(width: f32, height: f32) -> impl IntoElement {
                 Ok(path) => window.paint_path(path, rgb(0x030305)),
                 Err(error) => eprintln!("Не удалось построить контур острова: {error}"),
             }
-            let mut edge = PathBuilder::stroke(px(1.0));
-            contour(&mut edge, bounds);
-            if let Ok(path) = edge.build() {
-                window.paint_path(path, rgb(0x39323e));
-            }
         },
     )
     .absolute()

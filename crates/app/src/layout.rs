@@ -1,8 +1,11 @@
+pub const EXPANDED_HEIGHT: f32 = 260.0;
+const COMPACT_HEIGHT: f32 = 64.0;
+
 /// Hover changes height only; horizontal position stays anchored to monitor center.
 pub fn dimensions(wide: bool, progress: f32) -> (f32, f32) {
     (
         if wide { 540.0 } else { 460.0 },
-        64.0 + 196.0 * progress.clamp(0.0, 1.0),
+        COMPACT_HEIGHT + (EXPANDED_HEIGHT - COMPACT_HEIGHT) * progress.clamp(0.0, 1.0),
     )
 }
 

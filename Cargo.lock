@@ -2437,11 +2437,13 @@ dependencies = [
  "async-channel 2.5.0",
  "chrono",
  "gpui",
+ "image",
  "islandvolt-features",
  "islandvolt-platform-windows",
  "resvg",
  "serde",
  "serde_json",
+ "smallvec",
 ]
 
 [[package]]
@@ -2459,11 +2461,13 @@ dependencies = [
  "anyhow",
  "async-channel 2.5.0",
  "global-hotkey",
+ "image",
  "raw-window-handle",
  "resvg",
  "tray-icon",
  "windows",
  "windows-core",
+ "windows-future",
 ]
 
 [[package]]

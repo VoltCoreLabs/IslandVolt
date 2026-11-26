@@ -1,4 +1,5 @@
 //! User preferences; filesystem work runs before GPUI or on a dedicated worker.
+use crate::pet_catalog::PetKind;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -10,6 +11,8 @@ pub(crate) struct Preferences {
     pub pinned: bool,
     #[serde(default)]
     pub pet_hidden: bool,
+    #[serde(default)]
+    pub pet_kind: PetKind,
 }
 
 pub struct Settings {
@@ -92,6 +95,13 @@ impl Settings {
             let _ = self.sender.force_send(*preferences);
         }
     }
+
+    pub fn save_pet_kind(&self, kind: PetKind) {
+        if let Ok(mut preferences) = self.current.lock() {
+            preferences.pet_kind = kind;
+            let _ = self.sender.force_send(*preferences);
+        }
+    }
 }
 
 impl Drop for Settings {
@@ -120,6 +130,7 @@ mod tests {
         assert!(saved.wide);
         assert!(saved.pinned);
         assert!(!saved.pet_hidden);
+        assert_eq!(saved.pet_kind, PetKind::Cat);
     }
     #[test]
     fn shutdown_flushes_latest_preference() {
@@ -131,12 +142,14 @@ mod tests {
         settings.save_width(true);
         settings.save_pinned(true);
         settings.save_pet_hidden(true);
+        settings.save_pet_kind(PetKind::Rabbit);
         shutdown.finish();
         let saved: Preferences =
             serde_json::from_slice(&std::fs::read(&path).expect("saved settings")).expect("parse");
         assert!(saved.wide);
         assert!(saved.pinned);
         assert!(saved.pet_hidden);
+        assert_eq!(saved.pet_kind, PetKind::Rabbit);
         std::fs::remove_file(path).expect("remove test file");
         std::fs::remove_dir(folder).expect("remove test folder");
     }

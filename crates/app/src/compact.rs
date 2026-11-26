@@ -30,6 +30,12 @@ impl Island {
                     .min_w_0()
                     .max_w(px(230.0))
                     .when(!self.pet_hidden, |view| view.child(self.pet.clone()))
+                    .when(self.track_artwork.is_some(), |view| {
+                        view.child(crate::track_artwork::thumbnail(
+                            self.track_artwork.as_ref(),
+                            28.0,
+                        ))
+                    })
                     .child(
                         div()
                             .truncate()

@@ -84,11 +84,17 @@ Smoke-проверка в видимом окне сверяет viewport пос
 
 ## Первичные источники
 
+Обложка берётся из Thumbnail выбранной медиасессии. COM-поток ограничивает размер
+исходного потока 4 МиБ и ждёт каждую операцию чтения до 350 мс. В GPUI передаются
+пиксели миниатюры 128×128. Проверено чтение PNG через нативный поток WinRT
+на Windows 11. Проверка обложек с плеерами на обеих целевых ОС ещё впереди.
+
 Проверено при подготовке архитектуры 2026-11-14; upstream может измениться.
 
 - [GPUI README](https://github.com/zed-industries/zed/blob/main/crates/gpui/README.md)
 - [Выбор Windows-бэкенда GPUI](https://github.com/zed-industries/zed/blob/main/crates/gpui_platform/src/gpui_platform.rs)
 - [System media control](https://learn.microsoft.com/en-us/uwp/api/windows.media.control)
+- [DataReader.LoadAsync](https://learn.microsoft.com/en-us/uwp/api/windows.storage.streams.datareader.loadasync)
 - [Audio sessions](https://learn.microsoft.com/en-us/windows/win32/coreaudio/audio-sessions)
 - [WASAPI loopback](https://learn.microsoft.com/en-us/windows/win32/coreaudio/loopback-recording)
 - [Application Loopback sample и минимальная сборка](https://learn.microsoft.com/en-us/samples/microsoft/windows-classic-samples/applicationloopbackaudio-sample/)
