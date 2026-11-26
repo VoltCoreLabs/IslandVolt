@@ -24,6 +24,7 @@ impl Island {
                     if island.can_auto_collapse() {
                         island.expanded = false;
                         island.transition.set(false);
+                        island.close_mixer(cx);
                         cx.notify();
                     }
                 });
@@ -35,7 +36,7 @@ impl Island {
         can_collapse(
             self.hover.inside,
             self.pinned,
-            self.dragging_volume,
+            self.dragging_volume || self.mixer.as_ref().is_some_and(|mixer| mixer.dragging()),
             self.keyboard.open,
         )
     }

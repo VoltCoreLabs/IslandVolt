@@ -3,6 +3,9 @@ use gpui::{AnyElement, Context, IntoElement, MouseButton, div, prelude::*, px, r
 use islandvolt_platform_windows::{media::MediaAction, volume::Action};
 
 pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
+    if let Some(mixer) = &island.mixer {
+        return mixer.render(cx);
+    }
     if island.show_sources {
         return crate::source_picker::render(island, cx);
     }
@@ -202,15 +205,25 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
                 ),
         )
         .child(crate::volume_slider::render(percent, enabled, cx))
+        .child(audio_navigation(island, cx))
+        .child(crate::panel_footer::render(island, cx))
+        .into_any_element()
+}
+
+fn audio_navigation(island: &Island, cx: &mut Context<Island>) -> impl IntoElement {
+    div()
+        .flex()
+        .gap(px(18.0))
+        .text_xs()
+        .text_color(rgb(0xb4b6c2))
         .child(
             div()
                 .id("choose-source")
-                .text_xs()
-                .text_color(rgb(0xb4b6c2))
+                .cursor_pointer()
                 .child(if island.selected_source.is_some() {
-                    "Плеер выбран · изменить"
+                    "Сменить плеер"
                 } else {
-                    "Плеер: автоматически · изменить"
+                    "Плеер: автоматически"
                 })
                 .on_click(cx.listener(|this, _, _, cx| {
                     this.show_sources = true;
@@ -218,6 +231,11 @@ pub fn render(island: &Island, cx: &mut Context<Island>) -> AnyElement {
                     cx.notify();
                 })),
         )
-        .child(crate::panel_footer::render(island, cx))
-        .into_any_element()
+        .child(
+            div()
+                .id("open-mixer")
+                .cursor_pointer()
+                .child("Микшер приложений")
+                .on_click(cx.listener(|this, _, _, cx| this.open_mixer(cx))),
+        )
 }

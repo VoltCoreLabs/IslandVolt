@@ -2,6 +2,7 @@
 
 mod frame;
 pub mod media;
+pub mod mixer;
 pub mod shortcut;
 pub mod tray;
 pub mod volume;

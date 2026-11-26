@@ -15,6 +15,7 @@ pub fn create(window: &Window, cx: &mut Context<Island>) -> (Option<Tray>, Optio
                                 if !visible {
                                     island.release_keyboard(window);
                                     island.show_sources = false;
+                                    island.close_mixer(cx);
                                     island.dragging_volume = false;
                                 }
                                 if let Err(error) =

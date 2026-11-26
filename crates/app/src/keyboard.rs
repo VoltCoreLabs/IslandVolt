@@ -79,6 +79,7 @@ impl Island {
         self.pinned = false;
         self.settings.save_pinned(false);
         self.show_sources = false;
+        self.close_mixer(cx);
         self.sync_pet(cx);
         self.dragging_volume = false;
         self.expanded = false;
@@ -95,6 +96,10 @@ impl Island {
         // Modified keystrokes belong to global shortcuts, not local playback controls.
         let modifiers = &event.keystroke.modifiers;
         if modifiers.control || modifiers.alt || modifiers.platform || modifiers.function {
+            return;
+        }
+        if self.mixer_key(&event.keystroke.key, cx) {
+            cx.stop_propagation();
             return;
         }
         match event.keystroke.key.as_str() {

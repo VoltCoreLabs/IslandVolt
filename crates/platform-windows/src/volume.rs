@@ -1,6 +1,6 @@
 //! Windows endpoint volume, accessed only on a dedicated COM thread.
 
-mod notifications;
+pub(crate) mod notifications;
 
 use async_channel::{Receiver, Sender};
 use notifications::{device_callback, volume_callback};
@@ -80,7 +80,10 @@ fn run(
     // SAFETY: all COM interfaces below belong to this initialized thread.
     let enumerator: IMMDeviceEnumerator =
         unsafe { CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL)? };
-    let devices = device_callback(notify.clone());
+    let device_signal = notify.clone();
+    let devices = device_callback(move || {
+        let _ = device_signal.try_send(Message::Rebind);
+    });
     let callback = volume_callback(notify.clone());
     unsafe { enumerator.RegisterEndpointNotificationCallback(&devices)? };
     let mut endpoint: Option<IAudioEndpointVolume> = None;
